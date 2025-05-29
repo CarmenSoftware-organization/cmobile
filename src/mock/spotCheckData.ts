@@ -1,0 +1,106 @@
+// Mock data for Spot Check sessions and items
+
+export const mockSpotCheckSessions = [
+  {
+    id: 201,
+    name: "Main Store - Spot Check June 2024",
+    location: "Main Store",
+    businessUnit: "Grand Hotel Singapore",
+    selectionMethod: "Random",
+    itemCount: 10,
+    status: "In Progress",
+    checked: 4,
+    total: 10,
+    startedAt: "2024-06-10T09:00:00Z",
+    completedAt: null,
+  },
+  {
+    id: 202,
+    name: "Bar - Spot Check June 2024",
+    location: "Bar",
+    businessUnit: "Grand Hotel Singapore",
+    selectionMethod: "Manual",
+    itemCount: 20,
+    status: "Review",
+    checked: 20,
+    total: 20,
+    startedAt: "2024-06-11T10:00:00Z",
+    completedAt: null,
+  },
+  {
+    id: 203,
+    name: "Mini Bar - Spot Check May 2024",
+    location: "Mini Bar",
+    businessUnit: "Business Hotel Jakarta",
+    selectionMethod: "High Value",
+    itemCount: 5,
+    status: "Completed",
+    checked: 5,
+    total: 5,
+    startedAt: "2024-05-20T08:00:00Z",
+    completedAt: "2024-05-20T12:00:00Z",
+  },
+];
+
+export const mockSpotCheckItems = [
+  {
+    sku: "SKU101",
+    name: "Whiskey",
+    systemQty: 12,
+    actual: 12,
+    variance: 0,
+    unit: "bottle",
+    notes: "",
+    photo: null,
+    checked: true,
+  },
+  {
+    sku: "SKU102",
+    name: "Gin",
+    systemQty: 8,
+    actual: 7,
+    variance: -1,
+    unit: "bottle",
+    notes: "One bottle missing",
+    photo: null,
+    checked: true,
+  },
+  {
+    sku: "SKU103",
+    name: "Vodka",
+    systemQty: 10,
+    actual: null,
+    variance: 0,
+    unit: "bottle",
+    notes: "",
+    photo: null,
+    checked: false,
+  },
+  {
+    sku: "SKU104",
+    name: "Rum",
+    systemQty: 6,
+    actual: 6,
+    variance: 0,
+    unit: "bottle",
+    notes: "",
+    photo: null,
+    checked: true,
+  },
+  {
+    sku: "SKU105",
+    name: "Tequila",
+    systemQty: 5,
+    actual: 4,
+    variance: -1,
+    unit: "bottle",
+    notes: "Broken bottle",
+    photo: null,
+    checked: true,
+  },
+];
+
+export const mockSpotCheckVariances = mockSpotCheckItems.filter(
+  item => item.variance !== 0 && item.checked
+);
+// ...rest of file
