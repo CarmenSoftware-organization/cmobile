@@ -647,76 +647,7 @@ export default function PhysicalCountEntryPage() {
               </button>
             </div>
 
-            {/* Number Pad Overlay */}
-            {showNumberPad && (
-              <div className="absolute inset-0 bg-white dark:bg-gray-800 flex flex-col">
-                <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700">
-                  <h4 className="text-base font-semibold">Enter Quantity</h4>
-                  <button
-                    onClick={() => setShowNumberPad(false)}
-                    className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
 
-                <div className="flex-1 p-3 flex flex-col min-h-0">
-                  <div className="text-center mb-3">
-                    <input
-                      type="text"
-                      value={numberPadValue}
-                      readOnly
-                      className="text-lg font-mono text-center border border-gray-300 dark:border-gray-600 rounded p-2 w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2 max-w-48 mx-auto mb-3">
-                    {[1,2,3,4,5,6,7,8,9].map(num => (
-                      <button
-                        key={num}
-                        onClick={() => numberPadInput(num.toString())}
-                        className="h-16 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-lg font-semibold"
-                      >
-                        {num}
-                      </button>
-                    ))}
-                    <button
-                      onClick={() => numberPadInput('.')}
-                      className="h-16 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-lg font-semibold"
-                    >
-                      .
-                    </button>
-                    <button
-                      onClick={() => numberPadInput('0')}
-                      className="h-16 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-lg font-semibold"
-                    >
-                      0
-                    </button>
-                    <button
-                      onClick={() => numberPadInput('backspace')}
-                      className="h-16 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-lg font-semibold"
-                    >
-                      ⌫
-                    </button>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => numberPadInput('clear')}
-                      className="flex-1 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded font-semibold text-sm"
-                    >
-                      Clear
-                    </button>
-                    <button
-                      onClick={confirmNumberPad}
-                      className="flex-1 py-2 bg-blue-600 text-white rounded font-semibold text-sm"
-                    >
-                      Confirm
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Footer with Base Total */}
             <div className="border-t border-gray-200 dark:border-gray-700 p-3 space-y-2">
@@ -739,6 +670,86 @@ export default function PhysicalCountEntryPage() {
                   className="flex-1 py-2 bg-blue-600 text-white rounded font-semibold text-sm"
                 >
                   Select Total
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Number Pad Dialog */}
+      {showNumberPad && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowNumberPad(false);
+            }
+          }}
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-sm flex flex-col">
+            <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700">
+              <h4 className="text-base font-semibold text-gray-900 dark:text-gray-100">Enter Quantity</h4>
+              <button
+                onClick={() => setShowNumberPad(false)}
+                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-4 flex flex-col">
+              <div className="text-center mb-4">
+                <input
+                  type="text"
+                  value={numberPadValue}
+                  readOnly
+                  className="text-xl font-mono text-center border border-gray-300 dark:border-gray-600 rounded-lg p-3 w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                {[1,2,3,4,5,6,7,8,9].map(num => (
+                  <button
+                    key={num}
+                    onClick={() => numberPadInput(num.toString())}
+                    className="h-14 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-lg font-semibold"
+                  >
+                    {num}
+                  </button>
+                ))}
+                <button
+                  onClick={() => numberPadInput('.')}
+                  className="h-14 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-lg font-semibold"
+                >
+                  .
+                </button>
+                <button
+                  onClick={() => numberPadInput('0')}
+                  className="h-14 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-lg font-semibold"
+                >
+                  0
+                </button>
+                <button
+                  onClick={() => numberPadInput('backspace')}
+                  className="h-14 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-lg font-semibold"
+                >
+                  ⌫
+                </button>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => numberPadInput('clear')}
+                  className="flex-1 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold"
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={confirmNumberPad}
+                  className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-semibold"
+                >
+                  Confirm
                 </button>
               </div>
             </div>
