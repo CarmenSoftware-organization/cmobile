@@ -1,0 +1,505 @@
+# Overview
+The Carmen Software Supply Chain Mobile App is a mobile-first solution designed for hotels and hospitality businesses. It streamlines critical supply chain and financial workflows—such as receiving, purchase requests, stock takes, and spot checks—that traditionally relied on desktop systems or manual paperwork. The app empowers cost controllers, receiving clerks, PR approvers, and other operational staff with tools for accurate, fast, and compliant inventory handling directly on the operational floor. Its value lies in dramatically cutting errors, enforcing policy, providing complete audit trails, enabling real-time inventory visibility, and improving overall operational efficiency.
+
+# Core Features
+Here's a breakdown of the main features:
+
+1.  **Authentication & Session Management**
+    *   **What it does**: Securely manages user login, sessions, and access based on roles and assigned Business Units (BUs). Supports email/password, SSO, and token-based authentication.
+    *   **Why it's important**: Ensures only authorized personnel access sensitive data and functions, maintains data integrity across multiple properties (BUs), and provides a secure user experience.
+    *   **How it works**: Users log in and are automatically presented with data from their assigned BUs. No manual BU selection is needed. Session timeouts, secure token management, and multi-device handling are implemented.
+
+2.  **Dashboard**
+    *   **What it does**: Provides a role-based overview of key modules and their statuses, quick access to notifications, and displays the user's current Business Unit context.
+    *   **Why it's important**: Offers a centralized entry point for users to quickly access relevant tasks and information, improving workflow efficiency.
+    *   **How it works**: A mobile-optimized card-based design shows modules like "Good Receive Note," "PR Approval," etc., with real-time status counts.
+
+3.  **Store Requisition (SR) Module**
+    *   **What it does**: Enables users to request items from other departments or locations within the same Business Unit, manage the approval workflow, and track fulfillment.
+    *   **Why it's important**: Streamlines internal stock transfers, reduces paperwork, provides visibility into requisition status, and ensures proper documentation.
+    *   **How it works**: Users create SRs, add items (via search or barcode), and submit for a two-tier approval (Department Head, then Store Manager). Approved SRs are then fulfilled by store staff, with delivery confirmation. Includes Business Dimensions (Project Code, Market Segment, Event) for tracking.
+
+4.  **Receiving Module (PO & GRN)**
+    *   **What it does**: Manages the process of receiving goods against Purchase Orders (POs), creating Goods Receipt Notes (GRNs), and updating inventory. Features an enhanced "Scan PO" primary path.
+    *   **Why it's important**: Accelerates the receiving process, ensures accuracy in quantity and unit recording, improves data integrity by linking GRNs to POs, and provides an audit trail.
+    *   **How it works**:
+        *   **Scan PO Workflow**: Users can scan PO barcodes/QR codes. The system uses a three-tier detection approach:
+            1.  **Complete Context (PO with BU)**: Auto-detects BU, vendor; navigates directly to location selection.
+            2.  **Partial Context (PO without BU)**: Guides user through BU selection.
+            3.  **No Match**: Provides manual entry fallback.
+        *   **Traditional Flow**: Manual PO selection and GRN creation.
+        *   **GRN Processing**: Streamlined multi-tab GRN detail (Items, Summary, Comments). Enhanced unit selection (separate dropdowns for Received Qty & FOC Qty). Location-based item organization. Chat-style comments with attachments. Tax/discount info is read-only.
+
+5.  **Purchase Requisition (PR) Approval Module**
+    *   **What it does**: Allows managers to review, approve, reject, or return Purchase Requisitions. Provides access to real-time inventory data ([On Hand] / [On Order]) for informed decision-making.
+    *   **Why it's important**: Speeds up the procurement cycle, prevents over-ordering or stockouts, and ensures compliance with purchasing policies.
+    *   **How it works**: Approvers receive notifications, review PR details and item specifics. They can check current stock levels ([On Hand]) and incoming orders ([On Order]) for each item before making a decision. All actions are audited.
+
+6.  **Stock Take Module**
+    *   **What it does**: Facilitates physical inventory counts and spot checks to ensure inventory accuracy.
+    *   **Why it's important**: Helps identify discrepancies, maintain accurate stock records, and comply with financial auditing requirements.
+    *   **How it works**: Users can initiate "Physical Count" or "Spot Check" sessions. For Spot Checks, items can be selected randomly, by high value, or manually. The session is locked, and users record counts, attach photos for variances, and submit for review.
+
+7.  **Notification Module**
+    *   **What it does**: Alerts users to pending tasks (e.g., PRs needing approval) and system events.
+    *   **Why it's important**: Keeps users informed and ensures timely action on critical workflow items.
+    *   **How it works**: A notification bell on the dashboard shows unread counts. Tapping a notification provides details and direct navigation.
+
+8.  **Profile & Settings Module**
+    *   **What it does**: Allows users to view their profile information, manage account settings (like password changes if applicable), and log out.
+    *   **Why it's important**: Provides users with control over their account and access to app-related information.
+    *   **How it works**: Displays user details, role, and assigned BUs (informational). No BU selection/modification is possible here.
+
+# User Experience
+
+**User Personas:**
+
+*   **Cost Controller (Michelle)**: Focused on inventory accuracy, compliance, and efficient audits. Tech-savvy.
+*   **Receiving Clerk (David)**: Handles deliveries, needs accurate quantity/unit recording and documentation. Basic to moderate tech comfort.
+*   **PR Approver (Sarah - Department Head/Manager)**: Reviews and approves PRs, needs inventory data for decisions. Moderate to high tech comfort.
+*   **Store Staff (Maria - Store Requisition)**: Requests items internally, tracks status. Basic tech comfort.
+
+**Key User Flows:**
+
+1.  **Spot Check Process (Cost Controller)**:
+    *   Dashboard → Spot Check → Select Location & Method (Random/Manual) → System generates locked item list → Count items, use [On Hand]/[On Order], document variances → Submit.
+2.  **Purchase Order Receiving (Receiving Clerk)**:
+    *   Dashboard → "Good Receive Note" → Scan PO (or select PO manually) → Context Detection → Location Selection → Create GRN → Enter received quantities (dual unit selection), manage FOC, add comments/attachments → Review Summary → Submit GRN.
+3.  **Purchase Requisition Approval (PR Approver)**:
+    *   Notification → PR Detail → Review items, check [On Hand]/[On Order] → Approve/Reject/Modify → Add comments → Submit.
+4.  **Store Requisition (Store Staff & Approvers)**:
+    *   Dashboard → SR List → Create SR → Add items → Submit → Dept. Head Approval → Store Manager Approval → Fulfillment by store staff → Delivery Confirmation.
+
+**UI/UX Considerations:**
+
+*   **Mobile-First Design**: Touch-optimized, large tap targets, single-handed operation support, thumb-reach optimization. Name-first display (Product Name before SKU).
+*   **Consistency**: Aligned with Carmen Software branding. Business Unit always shown as a non-interactive label. Tax/discount information is always read-only on mobile.
+*   **Navigation**: Bottom tab bar for main modules. Clear visual hierarchy.
+*   **Forms**: Mobile-optimized keyboards, clear labeling, inline validation. Dropdown selects for mobile.
+*   **Information Display**: On Hand/On Order data presented in modals (PR Approval only). Color-coded status badges.
+*   **Accessibility**: WCAG AA compliance (color contrast, text scaling, screen reader compatibility).
+*   **Responsiveness**: Primarily for smartphones, with considerations for tablets.
+*   **Clarity**: Visual distinction between informational and actionable content.
+*   **Dashboard Module Cards**: Consistent naming: "Good Receive Note", "PR Approval", "SR Approval", "Physical Count", "Spot Check".
+*   **Receiving Enhancements**:
+    *   GRN Detail: Simplified to Items, Summary, and Comments tabs.
+    *   Comments Tab: Chat-style interface with photo/file attachments.
+    *   Unit Selection: Separate "Received Qty" and "FOC Qty" unit dropdowns.
+    *   Item Organization: Location-based grouping in GRN items list.
+    *   Workflow Consistency: Unified location selection for Scan PO and New GRN flows.
+*   **Store Requisition Enhancements**:
+    *   Improved Labeling: "Store Name" and "Request from".
+    *   Business Dimensions: Project Code, Market Segment, Event tags.
+    *   Approval Modal: Streamlined, focusing on notes.
+
+# Technical Architecture
+
+**System Components:**
+
+*   **Mobile Application (Frontend)**:
+    *   Framework: Next.js (with React)
+    *   UI Components: Shadcn UI
+    *   State Management: React Context API or Zustand (simpler alternative to Redux for Next.js)
+    *   Offline Support: Service workers and IndexedDB for caching data and queuing mutations.
+*   **Backend Server (API)**:
+    *   Language/Framework: Node.js with Express.js or NestJS (for a more structured approach if complex).
+    *   Database: PostgreSQL
+    *   ORM: Prisma ORM
+    *   Validation: Zod for schema validation (API inputs, database interactions).
+    *   Authentication: JWT-based, with integration for SSO (e.g., Passport.js).
+*   **Database**:
+    *   Type: PostgreSQL
+    *   Schema Management: Prisma Migrate.
+
+**Data Models (High-Level with Prisma-like syntax):**
+(Illustrative - details would be refined)
+```prisma
+// User and Auth
+model User {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  password    String // Hashed
+  role        Role      @relation(fields: [roleId], references: [id])
+  roleId      String
+  businessUnits UserBusinessUnit[]
+  // ... other fields (name, etc.)
+}
+
+model Role {
+  id          String    @id @default(cuid())
+  name        String    @unique // e.g., "Cost Controller", "Receiving Clerk"
+  permissions Permission[]
+  users       User[]
+}
+
+model BusinessUnit {
+  id          String    @id @default(cuid())
+  name        String    @unique // e.g., "Grand Hotel Singapore"
+  users       UserBusinessUnit[]
+  // ... other BU-specific data
+}
+
+model UserBusinessUnit {
+  userId         String
+  businessUnitId String
+  user           User         @relation(fields: [userId], references: [id])
+  businessUnit   BusinessUnit @relation(fields: [businessUnitId], references: [id])
+  @@id([userId, businessUnitId])
+}
+
+// Product & Inventory
+model Product {
+  id                String    @id @default(cuid())
+  sku               String    @unique
+  name              String
+  description       String?
+  inventoryUnit     String // e.g., "piece", "kg"
+  // ... other product master data
+  poItems           PurchaseOrderItem[]
+  grnItems          GoodsReceiptNoteItem[]
+  srItems           StoreRequisitionItem[]
+  stockTakeItems    StockTakeItem[]
+  spotCheckItems    SpotCheckItem[]
+}
+
+model Inventory {
+  id             String    @id @default(cuid())
+  productId      String
+  product        Product   @relation(fields: [productId], references: [id])
+  locationId     String    // Link to a Location model
+  businessUnitId String
+  quantityOnHand Float
+  // ... other inventory details (min, max, lastCounted)
+}
+
+// Purchase Order & GRN
+model PurchaseOrder {
+  id             String    @id @default(cuid())
+  poNumber       String    @unique
+  vendorId       String
+  businessUnitId String
+  status         String    // e.g., "Open", "Partial", "Closed"
+  // ... other PO header data (eta, value, currency)
+  items          PurchaseOrderItem[]
+  grns           GoodsReceiptNote[]
+}
+
+model PurchaseOrderItem {
+  id               String        @id @default(cuid())
+  purchaseOrderId  String
+  purchaseOrder    PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  productId        String
+  product          Product       @relation(fields: [productId], references: [id])
+  quantityOrdered  Float
+  orderUnit        String        // Unit on PO
+  // ... price, itemDetail (storeLocation, etc.)
+}
+
+model GoodsReceiptNote {
+  id             String    @id @default(cuid())
+  grnNumber      String    @unique
+  purchaseOrders PurchaseOrder[] // Can be linked to multiple POs
+  businessUnitId String
+  status         String    // "Draft", "Received", "Committed", "Void"
+  // ... GRN header data (date, receiver, vendor, invoiceDetails, currency, exchangeRate)
+  items          GoodsReceiptNoteItem[]
+  comments       GRNComment[]
+}
+
+model GoodsReceiptNoteItem {
+  id                 String            @id @default(cuid())
+  grnId              String
+  grn                GoodsReceiptNote  @relation(fields: [grnId], references: [id])
+  productId          String
+  product            Product           @relation(fields: [productId], references: [id])
+  poNumber           String?           // From which PO this item originated
+  quantityOrdered    Float
+  orderUnit          String
+  quantityReceived   Float
+  receivedUnit       String
+  quantityFoc        Float
+  focUnit            String
+  storeLocation      String?           // Where it's received
+  // ... Business Dimensions (jobCode, event, marketSegment) as optional fields or a separate related model
+  // ... itemDetail (expiryDate, department, etc.)
+}
+
+model GRNComment {
+  id          String            @id @default(cuid())
+  grnId       String
+  grn         GoodsReceiptNote  @relation(fields: [grnId], references: [id])
+  userId      String
+  text        String
+  timestamp   DateTime          @default(now())
+  attachments GRNAttachment[]
+}
+
+model GRNAttachment {
+  id        String      @id @default(cuid())
+  commentId String
+  comment   GRNComment  @relation(fields: [commentId], references: [id])
+  fileName  String
+  fileUrl   String
+  fileType  String      // "photo", "file"
+}
+
+
+// Store Requisition
+model StoreRequisition {
+  id                     String    @id @default(cuid())
+  srNumber               String    @unique
+  requestingDepartmentId String
+  sourceLocationId       String
+  businessUnitId         String
+  status                 String    // "Draft", "Submitted", "HOD Approved", "Approved", "Fulfilled", "Rejected"
+  // ... header data (requestDate, notes, createdBy)
+  // ... Business Dimensions
+  items                  StoreRequisitionItem[]
+  approvals              SRApproval[]
+}
+
+model StoreRequisitionItem {
+  id                 String            @id @default(cuid())
+  storeRequisitionId String
+  storeRequisition   StoreRequisition  @relation(fields: [storeRequisitionId], references: [id])
+  productId          String
+  product            Product           @relation(fields: [productId], references: [id])
+  quantityRequested  Float
+  quantityIssued     Float?
+  // ... Business Dimensions, purpose, notes
+}
+
+// ... Models for PRApproval, StockTake, SpotCheck, Notifications would follow similar patterns.
+```
+
+**APIs and Integrations:**
+
+*   **Internal APIs**: RESTful APIs (or GraphQL for flexibility) between the Next.js frontend and the backend server for all module functionalities (CRUD operations, workflow actions).
+    *   Authentication endpoints (`/auth/login`, `/auth/refresh-token`).
+    *   Module-specific endpoints (e.g., `/grn`, `/pr`, `/sr`). Zod used for request/response validation.
+*   **External System Integration (Examples)**:
+    *   **PMS/ERP**: Potentially REST/SOAP APIs for syncing master item data, PO data. Batch jobs or real-time webhooks.
+    *   **Vendor Master Data**: API for lookup if available.
+    *   **SSO/Auth**: SAML/OAuth2 integration using libraries like Passport.js.
+    *   **Notification Service**: Could use services like Firebase Cloud Messaging (FCM) or a custom WebSocket solution.
+
+**Infrastructure Requirements:**
+
+*   **Hosting**:
+    *   Frontend (Next.js): Vercel (ideal for Next.js), AWS Amplify, Netlify.
+    *   Backend API: Dockerized Node.js app hosted on AWS ECS/EKS, Google Cloud Run, Heroku, or similar PaaS/CaaS.
+    *   Database: Managed PostgreSQL service (AWS RDS, Google Cloud SQL, Heroku Postgres).
+*   **Storage**: AWS S3 or Google Cloud Storage for attachments (photos, files).
+*   **CI/CD**: GitHub Actions, GitLab CI, Jenkins for automated builds, testing, and deployments.
+*   **Monitoring**: Sentry for error tracking, Prometheus/Grafana or Datadog for performance monitoring.
+
+# Development Roadmap
+
+**Phase 1: Foundation & Core Authentication (MVP - Usable/Visible Frontend Focus)**
+
+*   **Goal**: Establish a secure, authenticated application shell with basic navigation and the ability to view data. Get something visible to users quickly.
+*   **Frontend (Next.js/Shadcn)**:
+    *   Basic app structure, layout, theme.
+    *   Login screen, password reset.
+    *   Dashboard shell (static cards initially).
+    *   Profile screen (display basic user info).
+    *   Navigation (tab bar).
+*   **Backend (Node.js/Postgres/Prisma/Zod)**:
+    *   User model, roles, permissions (basic structure).
+    *   Authentication (JWT, password hashing).
+    *   Business Unit model and basic association with users.
+    *   Basic API endpoints for user profile.
+*   **Key Features**:
+    1.  User Login & Logout.
+    2.  Secure Session Management.
+    3.  Basic Dashboard View (non-interactive module cards).
+    4.  Profile display.
+    5.  Initial Business Unit association display (read-only).
+
+**Phase 2: Receiving Module (GRN - Scan PO Focus for MVP)**
+
+*   **Goal**: Implement the core "Scan PO" receiving workflow as the primary path, as it's a key efficiency driver. Get a critical workflow end-to-end.
+*   **Frontend**:
+    *   "Good Receive Note" module entry.
+    *   Scan PO screen (camera integration or simulated scan input for MVP).
+    *   Context detection UI (displaying what's found from scan).
+    *   Location selection screen (unified).
+    *   GRN Detail screen (Items tab focus):
+        *   Display PO items based on scan/selection.
+        *   Inputs for Received Qty, FOC Qty (with new dual unit selectors).
+        *   Location-based item grouping display.
+    *   GRN Summary tab (display calculated totals).
+    *   GRN Comments tab (basic text comments).
+*   **Backend**:
+    *   Product, PurchaseOrder, GoodsReceiptNote models (core fields).
+    *   API endpoints for:
+        *   Fetching POs (for manual selection as fallback, or by ID from scan).
+        *   Creating/updating GRNs (Draft state).
+        *   Saving GRN items.
+    *   Logic for PO context detection (simulated or basic).
+    *   Basic inventory update logic (on GRN commit - Phase 3).
+*   **Key Features**:
+    1.  Scan PO (or manual PO lookup by ID).
+    2.  Context-Aware Routing (simulated if full detection is complex for MVP).
+    3.  Unified Location Selection.
+    4.  GRN Creation (Draft state) from PO.
+    5.  Item entry with dual unit selection (Received Qty, FOC Qty).
+    6.  Location-based item grouping display.
+    7.  Basic GRN Comments (text only).
+    8.  GRN Summary display.
+
+**Phase 3: Completing Receiving & Core PR Approval**
+
+*   **Goal**: Finalize the GRN lifecycle (commit, inventory update) and implement the core PR approval viewing and decision flow.
+*   **Frontend**:
+    *   GRN: "Commit GRN" functionality. Status updates (Received, Committed).
+    *   PR Approval: List view (read-only initially). Detail view (read-only). [On Hand]/[On Order] buttons (displaying mock/static data initially). Approve/Reject buttons (UI only).
+    *   Notifications: Basic display of new PRs needing approval.
+*   **Backend**:
+    *   GRN: Logic for committing GRN and updating inventory (simple decrement from a placeholder 'on order' or increment to 'on hand'). Full audit trail for GRN state changes.
+    *   PR Model, PR Item Model.
+    *   API endpoints for fetching PRs for a user.
+    *   API endpoints for [On Hand]/[On Order] (returning mock/basic data).
+    *   Basic Notification model and creation logic for new PRs.
+*   **Key Features**:
+    1.  GRN Commit & Inventory Update (basic).
+    2.  Full GRN State Workflow (Draft, Received, Committed, Void).
+    3.  PR List & Detail Views (read-only content).
+    4.  [On Hand]/[On Order] display (mock/static data).
+    5.  Basic Notifications for PRs.
+
+**Phase 4: Interactive PR Approval & Store Requisition (SR) - MVP**
+
+*   **Goal**: Make PR Approval interactive and introduce the Store Requisition creation and basic approval flow.
+*   **Frontend**:
+    *   PR Approval: Interactive approve/reject/return with comments.
+    *   SR Module: SR List (read-only). SR Creation screen. Item selection for SR. SR Detail view (read-only). Submit for approval (UI only).
+*   **Backend**:
+    *   PR Approval: API endpoints to handle approve/reject/return actions. Update PR status.
+    *   SR Model, SR Item Model. SR Approval Model.
+    *   API endpoints for creating SRs (Draft).
+    *   API endpoints for submitting SRs (to "Submitted" status).
+    *   Logic for SR HOD approval (basic status change).
+*   **Key Features**:
+    1.  Interactive PR Approval (Approve/Reject/Return with comments).
+    2.  SR Creation and Submission to HOD.
+    3.  Basic SR HOD Approval.
+
+**Phase 5: Stock Take & Spot Check Foundation, Enhancements**
+
+*   **Goal**: Introduce basic Stock Take/Spot Check functionality and enhance existing modules.
+*   **Frontend**:
+    *   Stock Take/Spot Check: Module entry. Location Selection. Basic item list display for counting (no complex selection methods yet). Count entry UI.
+    *   Receiving: Full chat-style comments with attachments (photos/files) for GRN.
+    *   SR: Store Manager approval UI. Fulfillment UI (basic).
+    *   Offline support: Basic caching for GRN drafts.
+*   **Backend**:
+    *   Stock Take/Spot Check Models. API for creating sessions and saving counts.
+    *   GRN: API support for file uploads for comments.
+    *   SR: Logic for Store Manager approval and basic fulfillment status updates.
+    *   Offline: API adjustments to handle potentially out-of-order or batched requests for GRN drafts.
+*   **Key Features**:
+    1.  Basic Stock Take/Spot Check count entry.
+    2.  GRN Comments with Attachments.
+    3.  Full SR Approval Workflow (HOD & Store Manager).
+    4.  Basic SR Fulfillment.
+    5.  Initial Offline Support for GRN Drafts.
+
+**Future Enhancements (Post-MVP / Subsequent Phases):**
+
+*   **Receiving**: Full traditional PO selection flow, advanced date filtering, currency grouping.
+*   **PR Approval**: Full workflow decision engine, edit tracking, dynamic submit button.
+*   **SR Module**: Advanced Business Dimensions, price/cost display, full offline support.
+*   **Stock Take/Spot Check**: Advanced item selection (random, high value), session management (pause/resume), variance reporting.
+*   **Notifications**: Advanced types, in-app management, push notifications.
+*   **Dashboard**: Interactive, real-time counts.
+*   **Comprehensive Offline Support**: For all modules.
+*   **Advanced Analytics & Reporting Hooks**.
+*   **Full Business Dimensions Integration** across all relevant entities.
+*   **Security Hardening**: MFA, advanced biometric setup.
+*   **UI Polish & UX Refinements** based on user feedback.
+*   **Tablet layouts and optimizations.**
+
+# Logical Dependency Chain
+
+1.  **Foundation (Phase 1)**:
+    *   **User Authentication & Authorization**: Core to everything. Needed before any user-specific data can be handled.
+    *   **Basic App Shell & Navigation**: Allows users to log in and see *something*.
+    *   **Business Unit Concept**: Fundamental for data scoping, even if just read-only initially.
+    *   **(Frontend First Visibility)**: Get the login screen, dashboard shell, and profile visible ASAP. Backend auth can follow closely.
+
+2.  **Core Receiving Workflow - Scan PO Path (Phase 2)**:
+    *   **(Frontend First Visibility)**: Build the Scan PO screen, Location Selection, and GRN Detail (Items tab) UI. This makes the primary new workflow visible.
+    *   **PO & GRN Data Models (Backend)**: Needed to store the data captured.
+    *   **API for PO Lookup & GRN Draft Creation**: To make the frontend interactive.
+    *   **Dependency**: Builds on Foundation (auth, BU context).
+
+3.  **Completing GRN Lifecycle & Basic PR View (Phase 3)**:
+    *   **GRN Commit Logic & Inventory Update (Backend)**: Makes the GRN flow useful.
+    *   **PR Data Models & Read APIs (Backend)**: To populate PR views.
+    *   **(Frontend First Visibility)**: Implement the "Commit GRN" button. Build read-only PR List/Detail screens.
+    *   **Dependency**: Builds on GRN Draft (Phase 2). Inventory update is a key outcome.
+
+4.  **Interactive PR Approval & SR Creation (Phase 4)**:
+    *   **PR Approval Action APIs (Backend)**: Makes PRs actionable.
+    *   **SR Data Models & Creation APIs (Backend)**: To start the SR flow.
+    *   **(Frontend First Visibility)**: Make PR approve/reject buttons functional. Build SR creation form.
+    *   **Dependency**: Builds on PR View (Phase 3). SR is a new, somewhat independent workflow.
+
+5.  **Stock Take/Spot Check Intro & Enhancements (Phase 5)**:
+    *   **Stock Take/Spot Check Models & Basic Count APIs (Backend)**.
+    *   **GRN Attachment APIs (Backend)**.
+    *   **(Frontend First Visibility)**: Build basic count entry screens. Implement GRN attachment UI.
+    *   **Dependency**: These are new modules/enhancements that can be added once core GRN/PR flows are stable. Offline support is an enhancement to GRN.
+
+**Pacing and Scoping Each Feature:**
+
+*   **Atomic Features**: Each user story or sub-feature should be deliverable and testable independently where possible. E.g., "User can log in" is atomic. "User can create GRN draft" is atomic.
+*   **Build Upon**:
+    *   Auth is built upon with profile views, then module access.
+    *   GRN draft is built upon with commit, then comments, then offline.
+    *   Read-only PR views are built upon with interactive actions.
+*   **Frontend First for Visibility**: Prioritize building UI shells and basic interactivity quickly to get user feedback and demonstrate progress. Backend logic can be stubbed or mocked initially, then filled in.
+*   **Iterative Backend Development**: Develop API endpoints as needed by the frontend features being built in a sprint/phase.
+*   **Regular Integration**: Continuously integrate frontend and backend pieces to catch issues early.
+
+# Risks and Mitigations
+
+**Technical Challenges:**
+
+*   **Offline Sync Complexity**:
+    *   **Risk**: Ensuring data consistency and handling conflicts with IndexedDB and Prisma can be complex.
+    *   **Mitigation**: Start with simple offline caching for one module (e.g., GRN drafts). Use a well-tested library for sync if available or implement a robust queuing and conflict resolution strategy. Thorough testing under various network conditions.
+*   **Camera/Barcode Scanner Integration**:
+    *   **Risk**: Cross-platform compatibility and performance of scanning libraries.
+    *   **Mitigation**: Use established React Native libraries (e.g., react-native-vision-camera with a barcode scanning frame processor). Test on target devices early. Provide manual input as a fallback.
+*   **Real-time Notifications**:
+    *   **Risk**: Scalability and reliability of WebSocket or push notification infrastructure.
+    *   **Mitigation**: Use managed services like FCM or a robust WebSocket library. Start with basic polling for MVP if real-time is too complex initially.
+
+**Figuring out the MVP that we can build upon:**
+
+*   **Risk**: Scope creep or building too many non-essential features for the initial usable product.
+*   **Mitigation**: Strictly follow the phased roadmap. Prioritize the "Scan PO" receiving path and basic PR viewing/approval. Focus on getting one critical end-to-end flow working well before expanding. Regularly review scope against core user needs for MVP. Solicit early feedback on the visible frontend.
+
+**Resource Constraints:**
+
+*   **Risk**: Limited developer availability slowing down progress or requiring de-scoping.
+*   **Mitigation**: Clear prioritization based on the roadmap. Focus on one feature/module at a time per developer if necessary. Ensure tasks are well-defined and atomic. Maintain a backlog of "Future Enhancements" to defer non-critical items. Use Shadcn and Next.js to accelerate frontend development. Prisma ORM simplifies backend database interactions.
+
+# Appendix
+
+**Research Findings (Assumed/Placeholder):**
+
+*   User interviews confirmed that the manual receiving process and delays in PR approvals are major pain points.
+*   A "Scan PO" feature is highly desired for efficiency in receiving.
+*   Cost controllers require robust audit trails and easy access to [On Hand]/[On Order] data.
+*   Offline capability is crucial for staff working in areas with poor connectivity (e.g., basements, large storerooms).
+
+**Technical Specifications (To be detailed further per feature):**
+
+*   **API Design**: OpenAPI (Swagger) specifications for all endpoints.
+*   **Database Schema**: Detailed Prisma schema with all relations, indexes, and constraints.
+*   **Security Protocols**: Detailed plan for JWT implementation, token refresh, password policies, data encryption methods.
+*   **Offline Sync Protocol**: Specification for data versioning, conflict resolution, and sync triggers.
+*   **Component Library**: Documentation for custom Shadcn components or extensions.

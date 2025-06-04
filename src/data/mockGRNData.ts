@@ -113,6 +113,7 @@ export interface MockGRN {
   vendorCode: string;
   createdDate: string;
   receivedDate?: string;
+  commitDate?: string;
   dueDate?: string;
   linkedPOs: string[];
   businessUnit: string;
@@ -334,6 +335,7 @@ export const mockGRNs: MockGRN[] = [
     vendorCode: "JCO002",
     createdDate: "2024-06-02",
     receivedDate: "2024-06-02",
+    commitDate: "2024-06-02",
     linkedPOs: ["PO-1002"],
     businessUnit: "Business Hotel Jakarta",
     createdBy: "Sarah Lee",
@@ -448,16 +450,18 @@ export const mockGRNs: MockGRN[] = [
   {
     id: "GRN-2024-003",
     grnNumber: "GRN-2024-003",
-    status: "Received",
+    status: "Committed",
     vendorId: 3,
     vendorName: "Coffee Traders",
     vendorCode: "CTR003",
     createdDate: "2024-06-03",
     receivedDate: "2024-06-03",
+    commitDate: "2024-06-04",
     dueDate: "2024-06-07",
     linkedPOs: ["PO-1003"],
     businessUnit: "Boutique Hotel Bangkok",
     createdBy: "Mike Johnson",
+    approvedBy: "Chef Maria",
     totalValue: "$60.00",
     currency: "THB",
     itemCount: 3,
@@ -663,6 +667,14 @@ export const mockGRNs: MockGRN[] = [
       exchangeRate: 35,
       baseCurrencyTotal: 4278.4
     },
+    signature: {
+      receiverName: "Mike Johnson",
+      receiverSignature: "[Digital Signature - Mike Johnson]",
+      receivedDate: "2024-06-03",
+      receivedTime: "11:15",
+      designation: "Cafe Manager",
+      department: "F&B Operations"
+    },
     extraCosts: [
       {
         id: "EC002",
@@ -686,10 +698,18 @@ export const mockGRNs: MockGRN[] = [
             size: 245760
           }
         ]
+      },
+      {
+        id: 2,
+        sender: "Chef Maria",
+        timestamp: "2024-06-04 09:15",
+        text: "Quality verified and approved. Items committed to inventory for cafe operations.",
+        attachments: []
       }
     ],
     notes: "Premium coffee beans - store in cool, dry place",
-    deliveryNote: "DN-240603-001"
+    deliveryNote: "DN-240603-001",
+    invoiceNumber: "INV-CTR-240603-001"
   },
   {
     id: "GRN-2024-004",
@@ -863,11 +883,12 @@ export const mockGRNs: MockGRN[] = [
   {
     id: "GRN-2024-005",
     grnNumber: "GRN-2024-005",
-    status: "Draft",
+    status: "Received",
     vendorId: 5,
     vendorName: "Bakery Bros",
     vendorCode: "BBR005",
     createdDate: "2024-06-05",
+    receivedDate: "2024-06-06",
     dueDate: "2024-06-09",
     linkedPOs: ["PO-1005"],
     businessUnit: "Business Hotel Jakarta",
@@ -882,11 +903,11 @@ export const mockGRNs: MockGRN[] = [
         product: "Whole Wheat Bread",
         sku: "SKU66666",
         orderedQty: 12,
-        receivedQty: 0,
+        receivedQty: 12,
         focQty: 0,
         unit: "piece",
         unitPrice: 3.75,
-        totalAmount: 0.0,
+        totalAmount: 45.0,
         poNumber: "PO-1005",
         storeLocation: "Bakery Section",
         itemDescription: "Whole Wheat Bread",
@@ -899,7 +920,7 @@ export const mockGRNs: MockGRN[] = [
         discountType: "fixed",
         taxType: "exempt",
         taxRate: 0,
-        onHand: 0,
+        onHand: 12,
         onOrder: 0,
         reorderThreshold: 12,
         restockLevel: 12,
@@ -941,14 +962,14 @@ export const mockGRNs: MockGRN[] = [
       }
     ],
     summary: {
-      subtotal: 0.0,
-      taxAmount: 0.0,
+      subtotal: 45.0,
+      taxAmount: 3.15,
       discountAmount: 0.0,
       extraCostAmount: 0.0,
-      totalAmount: 0.0,
+      totalAmount: 48.15,
       currency: "IDR",
       exchangeRate: 15000,
-      baseCurrencyTotal: 0.0
+      baseCurrencyTotal: 722250
     },
     extraCosts: [],
     comments: [
@@ -957,6 +978,13 @@ export const mockGRNs: MockGRN[] = [
         sender: "David Chen",
         timestamp: "2024-06-05 07:00",
         text: "GRN created, awaiting fresh bread delivery.",
+        attachments: []
+      },
+      {
+        id: 2,
+        sender: "David Chen",
+        timestamp: "2024-06-06 08:30",
+        text: "Fresh bread received in excellent condition. Quality perfect for breakfast service.",
         attachments: []
       }
     ],
@@ -972,6 +1000,7 @@ export const mockGRNs: MockGRN[] = [
     vendorCode: "DDR006",
     createdDate: "2024-06-06",
     receivedDate: "2024-06-06",
+    commitDate: "2024-06-07",
     linkedPOs: ["PO-1006"],
     businessUnit: "Boutique Hotel Bangkok",
     createdBy: "Lisa Davis",
@@ -1150,16 +1179,18 @@ export const mockGRNs: MockGRN[] = [
   {
     id: "GRN-2024-007",
     grnNumber: "GRN-2024-007",
-    status: "Received",
+    status: "Committed",
     vendorId: 7,
     vendorName: "Meat Masters",
     vendorCode: "MTM007",
     createdDate: "2024-06-07",
     receivedDate: "2024-06-07",
+    commitDate: "2024-06-08",
     dueDate: "2024-06-10",
     linkedPOs: ["PO-1007", "PO-1012"],
     businessUnit: "Grand Hotel Singapore",
     createdBy: "Robert Kim",
+    approvedBy: "Head Chef Antonio",
     totalValue: "$380.00",
     currency: "SGD",
     itemCount: 2,
@@ -1303,6 +1334,14 @@ export const mockGRNs: MockGRN[] = [
       exchangeRate: 1.0,
       baseCurrencyTotal: 402.6
     },
+    signature: {
+      receiverName: "Robert Kim",
+      receiverSignature: "[Digital Signature - Robert Kim]",
+      receivedDate: "2024-06-07",
+      receivedTime: "06:45",
+      designation: "Procurement Manager",
+      department: "Kitchen Operations"
+    },
     extraCosts: [
       {
         id: "EC004",
@@ -1339,6 +1378,13 @@ export const mockGRNs: MockGRN[] = [
         sender: "Chef Maria",
         timestamp: "2024-06-07 06:30",
         text: "Perfect marbling on the meat. Ready for weekend banquet.",
+        attachments: []
+      },
+      {
+        id: 3,
+        sender: "Head Chef Antonio",
+        timestamp: "2024-06-08 07:00",
+        text: "Quality confirmed and approved. Items committed to inventory for Saturday banquet service.",
         attachments: []
       }
     ],

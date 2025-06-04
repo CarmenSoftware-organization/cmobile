@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import { Calendar, MapPin, Clock, Users, ChevronDown, Settings } from "lucide-react";
 
 const mockLocations = [
-  { id: 1, name: "Main Store", type: "Count", bu: "Grand Hotel Singapore", itemCount: 245, lastCount: "2024-05-15" },
-  { id: 2, name: "Bar", type: "System Default", bu: "Grand Hotel Singapore", itemCount: 89, lastCount: "2024-05-20" },
-  { id: 3, name: "Mini Bar", type: "Direct", bu: "Business Hotel Jakarta", itemCount: 156, lastCount: "2024-05-18" },
-  { id: 4, name: "Kitchen Storage", type: "Count", bu: "Grand Hotel Singapore", itemCount: 312, lastCount: "2024-05-10" },
-  { id: 5, name: "Housekeeping Storage", type: "System Default", bu: "Business Hotel Jakarta", itemCount: 78, lastCount: "2024-05-22" },
+  { id: 1, name: "Main Store", type: "Count", bu: "Grand Hotel Singapore", itemCount: 150, lastCount: "2024-05-15" },
+  { id: 2, name: "Bar", type: "Issue Balance", bu: "Grand Hotel Singapore", itemCount: 89, lastCount: "2024-05-20" },
+  { id: 3, name: "Kitchen", type: "Count", bu: "Grand Hotel Singapore", itemCount: 200, lastCount: "2024-05-18" },
+  { id: 4, name: "Housekeeping", type: "Count", bu: "Business Hotel Jakarta", itemCount: 95, lastCount: "2024-05-19" },
+  { id: 5, name: "Housekeeping Storage", type: "Issue Balance", bu: "Business Hotel Jakarta", itemCount: 78, lastCount: "2024-05-22" },
+  { id: 6, name: "Conference Room Storage", type: "Count", bu: "Business Hotel Jakarta", itemCount: 45, lastCount: "2024-05-21" },
+  { id: 7, name: "Spa Storage", type: "Direct", bu: "Grand Hotel Singapore", itemCount: 35, lastCount: "2024-05-17" },
 ];
 
 const mockPeriods = [
@@ -27,11 +29,11 @@ export default function PhysicalCountPage() {
 
   const selectedPeriodData = mockPeriods.find(p => p.id === selectedPeriod);
   
-  // Filter locations based on type - only "Count" by default, optionally include "System Default"
+  // Filter locations based on type - only "Count" by default, optionally include "Issue Balance"
   const filteredLocations = mockLocations.filter(location => {
     if (location.type === "Count") return true;
-    if (location.type === "System Default" && includeSystemDefault) return true;
-    return false;
+    if (location.type === "Issue Balance" && includeSystemDefault) return true;
+    return false; // Exclude "Direct" and other types
   });
   
   const selectedLocationData = filteredLocations.find(l => l.id === selectedLocation);
@@ -47,7 +49,8 @@ export default function PhysicalCountPage() {
   // Reset selected location if it's no longer in filtered list
   const handleIncludeSystemDefaultChange = (checked: boolean) => {
     setIncludeSystemDefault(checked);
-    if (!checked && selectedLocationData?.type === "System Default") {
+    // If unchecking and currently selected location is Issue Balance, clear selection
+    if (!checked && selectedLocationData?.type === "Issue Balance") {
       setSelectedLocation(null);
     }
   };
@@ -148,7 +151,7 @@ export default function PhysicalCountPage() {
                   onChange={(e) => handleIncludeSystemDefaultChange(e.target.checked)}
                   className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
                 />
-                Include System Default
+                Include Issue Balance
               </label>
             </div>
           </div>
@@ -160,7 +163,7 @@ export default function PhysicalCountPage() {
               <div className="space-y-1">
                 <div><strong>Count:</strong> Manual entry required for all items (recommended for physical counts)</div>
                 {includeSystemDefault && (
-                  <div><strong>System Default:</strong> Uses system quantities as starting point</div>
+                  <div><strong>Issue Balance:</strong> Uses system quantities as starting point</div>
                 )}
               </div>
             </div>
@@ -172,7 +175,7 @@ export default function PhysicalCountPage() {
                 <MapPin className="w-8 h-8 mx-auto mb-2 opacity-50" />
                 <p>No locations available for physical count.</p>
                 <p className="text-sm mt-1">
-                  {!includeSystemDefault ? "Try enabling 'Include System Default' locations." : "Contact your administrator to set up count locations."}
+                  {!includeSystemDefault ? "Try enabling 'Include Issue Balance' locations." : "Contact your administrator to set up count locations."}
                 </p>
               </div>
             ) : (
@@ -267,7 +270,7 @@ export default function PhysicalCountPage() {
           <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Physical Count Guidelines</h4>
           <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
             <div><strong>Count Locations:</strong> Require manual entry of actual quantities found (recommended for physical counts)</div>
-            <div><strong>System Default Locations:</strong> Use system quantities as starting point (optional for physical counts)</div>
+            <div><strong>Issue Balance Locations:</strong> Use system quantities as starting point (optional for physical counts)</div>
             <div><strong>Note:</strong> Direct locations are not suitable for physical counts and are excluded from this list</div>
           </div>
         </div>

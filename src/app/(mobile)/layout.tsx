@@ -10,7 +10,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const tabs = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
-  { href: "/receiving", label: "GRN", icon: Package, fullLabel: "Good Receive Note" },
+  { href: "/receiving/pending-pos", label: "Receiving", icon: Package, fullLabel: "Good Receive Note" },
   { href: "/pr-approval", label: "Approval", icon: CheckCircle },
   { href: "/store-requisition", label: "Store Req.", icon: ShoppingCart },
   { href: "/stock-take", label: "Stock Take", icon: ClipboardList },

@@ -4,15 +4,14 @@ import { useRouter, useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { mockPhysicalCountItems } from "@/mock/physicalCountData";
 import { FileAttachments, FileAttachment } from "@/components/ui/file-attachments";
-import { Save, Pause, CheckCircle, Clock, MapPin, Calendar } from "lucide-react";
+import { Save, Pause, CheckCircle, Clock, MapPin, Calendar, Plus, Minus, ChevronDown, Calculator, X, Trash2 } from "lucide-react";
 
 interface PhysicalCountItem {
   sku: string;
   name: string;
-  systemQty: number;
   actual: number | null;
-  variance: number;
   unit: string;
+  availableUnits?: string[];
   notes: string;
   attachments: FileAttachment[];
   counted: boolean;
@@ -29,6 +28,26 @@ interface SessionInfo {
   countedItems: number;
   status: "In Progress" | "Paused" | "Review";
 }
+
+interface CalculatorItem {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+}
+
+const UNIT_CONVERSIONS: Record<string, number> = {
+  'g': 1,
+  'kg': 1000,
+  'mg': 0.001,
+  'L': 1000, // assuming 1L = 1kg for liquids
+  'mL': 1,
+  'pcs': 1, // assume 1 piece = 1 gram (default)
+  'box': 100, // assume 1 box = 100g (adjustable)
+  'case': 1000, // assume 1 case = 1kg (adjustable)
+  'bottle': 500, // assume 1 bottle = 500g (adjustable)
+  'pack': 50, // assume 1 pack = 50g (adjustable)
+};
 
 export default function PhysicalCountEntryPage() {
   const router = useRouter();
@@ -48,10 +67,16 @@ export default function PhysicalCountEntryPage() {
     status: "In Progress"
   });
   
-  // Convert mock data to use attachments array
+  // Convert mock data to new structure without system quantity and variance
   const initialItems = mockPhysicalCountItems.map(item => ({
-    ...item,
-    attachments: []
+    sku: item.sku,
+    name: item.name,
+    actual: item.actual,
+    unit: item.unit,
+    availableUnits: ["pcs", "kg", "g", "L", "mL", "box", "case", "bottle", "pack"],
+    notes: item.notes || "",
+    attachments: [],
+    counted: item.counted || false
   }));
   
   const [items, setItems] = useState<PhysicalCountItem[]>(initialItems);
@@ -60,11 +85,24 @@ export default function PhysicalCountEntryPage() {
   const [lastSaved, setLastSaved] = useState<Date>(new Date(sessionInfo.lastSaved));
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
+  // Calculator dialog state
+  const [showCalculatorDialog, setShowCalculatorDialog] = useState(false);
+  const [currentCalculatorItemIndex, setCurrentCalculatorItemIndex] = useState<number | null>(null);
+  const [calculatorItems, setCalculatorItems] = useState<CalculatorItem[]>([]);
+  const [showNumberPad, setShowNumberPad] = useState(false);
+  const [activeCalculatorItemId, setActiveCalculatorItemId] = useState<string | null>(null);
+  const [numberPadValue, setNumberPadValue] = useState("");
+
   // Calculate progress
   const countedItems = items.filter(item => item.counted).length;
   const totalItems = items.length;
   const progress = Math.round((countedItems / totalItems) * 100);
-  const varianceItems = items.filter(item => item.counted && item.variance !== 0).length;
+
+  // Calculate base total in grams
+  const baseTotalGrams = calculatorItems.reduce((total, item) => {
+    const conversionFactor = UNIT_CONVERSIONS[item.unit] || 1;
+    return total + (item.quantity * conversionFactor);
+  }, 0);
 
   // Auto-save functionality
   useEffect(() => {
@@ -81,11 +119,32 @@ export default function PhysicalCountEntryPage() {
     setItems((prev) =>
       prev.map((item, i) =>
         i === idx
-          ? { ...item, actual: value, variance: value - item.systemQty, counted: true }
+          ? { ...item, actual: value, counted: true }
           : item
       )
     );
     setHasUnsavedChanges(true);
+  };
+
+  const handleUnitChange = (idx: number, unit: string) => {
+    setItems((prev) =>
+      prev.map((item, i) => 
+        i === idx ? { ...item, unit } : item
+      )
+    );
+    setHasUnsavedChanges(true);
+  };
+
+  const incrementCount = (idx: number) => {
+    const item = items[idx];
+    const newValue = (item.actual || 0) + 1;
+    handleCountChange(idx, newValue);
+  };
+
+  const decrementCount = (idx: number) => {
+    const item = items[idx];
+    const newValue = Math.max(0, (item.actual || 0) - 1);
+    handleCountChange(idx, newValue);
   };
 
   const handleNotesChange = (idx: number, value: string) => {
@@ -161,6 +220,94 @@ export default function PhysicalCountEntryPage() {
     setExpandedItem(expandedItem === sku ? null : sku);
   };
 
+  // Calculator dialog functions
+  const openCalculatorDialog = (itemIndex: number) => {
+    setCurrentCalculatorItemIndex(itemIndex);
+    const item = items[itemIndex];
+    setCalculatorItems([{
+      id: `calc-${Date.now()}`,
+      name: `${item.name} (${item.unit})`,
+      quantity: item.actual || 0,
+      unit: item.unit
+    }]);
+    setShowCalculatorDialog(true);
+  };
+
+  const closeCalculatorDialog = () => {
+    setShowCalculatorDialog(false);
+    setCurrentCalculatorItemIndex(null);
+    setCalculatorItems([]);
+    setShowNumberPad(false);
+    setActiveCalculatorItemId(null);
+    setNumberPadValue("");
+  };
+
+  const addCalculatorItem = () => {
+    if (currentCalculatorItemIndex !== null) {
+      const mainItem = items[currentCalculatorItemIndex];
+      setCalculatorItems(prev => [...prev, {
+        id: `calc-${Date.now()}`,
+        name: `${mainItem.name} (additional unit)`,
+        quantity: 0,
+        unit: 'pcs'
+      }]);
+    }
+  };
+
+  const removeCalculatorItem = (id: string) => {
+    setCalculatorItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  const updateCalculatorItem = (id: string, field: keyof CalculatorItem, value: string | number) => {
+    setCalculatorItems(prev => prev.map(item => 
+      item.id === id ? { ...item, [field]: value } : item
+    ));
+  };
+
+  const openNumberPad = (itemId: string, currentValue: number) => {
+    setActiveCalculatorItemId(itemId);
+    setNumberPadValue(currentValue.toString());
+    setShowNumberPad(true);
+  };
+
+  const numberPadInput = (digit: string) => {
+    if (digit === 'clear') {
+      setNumberPadValue('');
+    } else if (digit === 'backspace') {
+      setNumberPadValue(prev => prev.slice(0, -1));
+    } else if (digit === '.') {
+      if (!numberPadValue.includes('.')) {
+        setNumberPadValue(prev => prev + '.');
+      }
+    } else {
+      setNumberPadValue(prev => prev + digit);
+    }
+  };
+
+  const confirmNumberPad = () => {
+    if (activeCalculatorItemId) {
+      const value = parseFloat(numberPadValue) || 0;
+      updateCalculatorItem(activeCalculatorItemId, 'quantity', Math.max(0, value));
+    }
+    setShowNumberPad(false);
+    setActiveCalculatorItemId(null);
+    setNumberPadValue('');
+  };
+
+  const confirmCalculatorTotal = () => {
+    if (currentCalculatorItemIndex !== null) {
+      const totalQuantity = calculatorItems.reduce((sum, item) => {
+        const conversionFactor = UNIT_CONVERSIONS[item.unit] || 1;
+        const baseUnit = items[currentCalculatorItemIndex].unit;
+        const targetConversion = UNIT_CONVERSIONS[baseUnit] || 1;
+        return sum + (item.quantity * conversionFactor / targetConversion);
+      }, 0);
+      
+      handleCountChange(currentCalculatorItemIndex, Math.round(totalQuantity * 100) / 100);
+    }
+    closeCalculatorDialog();
+  };
+
   const handleSave = async (showFeedback = true) => {
     setIsSaving(true);
     
@@ -188,16 +335,6 @@ export default function PhysicalCountEntryPage() {
       await handleSave();
     }
     router.push(`/physical-count/session/${sessionId}/review`);
-  };
-
-  const getVarianceColor = (variance: number) => {
-    if (variance === 0) return "text-gray-500";
-    return variance > 0 ? "text-green-600" : "text-red-600";
-  };
-
-  const getVarianceIcon = (variance: number) => {
-    if (variance === 0) return null;
-    return variance > 0 ? "+" : "";
   };
 
   return (
@@ -252,11 +389,6 @@ export default function PhysicalCountEntryPage() {
               Unsaved Changes
             </span>
           )}
-          {varianceItems > 0 && (
-            <span className="px-2 py-1 bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 rounded text-xs font-medium">
-              {varianceItems} Variances
-            </span>
-          )}
           <span className="px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 rounded text-xs font-medium">
             {sessionInfo.status}
           </span>
@@ -274,12 +406,7 @@ export default function PhysicalCountEntryPage() {
                   <div className="text-sm text-gray-500 dark:text-gray-400">{item.sku}</div>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm text-gray-600 dark:text-gray-400">System: {item.systemQty}</div>
-                  {item.counted && (
-                    <div className={`text-sm font-medium ${getVarianceColor(item.variance)}`}>
-                      Variance: {getVarianceIcon(item.variance)}{item.variance}
-                    </div>
-                  )}
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Unit: {item.unit}</div>
                 </div>
               </div>
 
@@ -288,15 +415,56 @@ export default function PhysicalCountEntryPage() {
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 min-w-0">
                   Actual Count:
                 </label>
-                <input
-                  type="number"
-                  className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 w-24 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                  value={item.actual ?? ""}
-                  onChange={e => handleCountChange(idx, Number(e.target.value))}
-                  min={0}
-                  step="0.01"
-                />
-                <span className="text-sm text-gray-500 dark:text-gray-400">{item.unit}</span>
+                
+                {/* Input Group with attached +/- buttons */}
+                <div className="flex border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden bg-white dark:bg-gray-700">
+                  <button
+                    className="px-3 py-2 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors border-r border-gray-300 dark:border-gray-600"
+                    onClick={() => decrementCount(idx)}
+                    type="button"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <input
+                    type="number"
+                    className="px-3 py-2 w-24 bg-transparent text-gray-900 dark:text-gray-100 border-0 focus:outline-none focus:ring-0"
+                    value={item.actual ?? ""}
+                    onChange={e => handleCountChange(idx, Number(e.target.value))}
+                    min={0}
+                    step="0.01"
+                  />
+                  <button
+                    className="px-3 py-2 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors border-l border-gray-300 dark:border-gray-600"
+                    onClick={() => incrementCount(idx)}
+                    type="button"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                  <button
+                    className="px-3 py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors border-l border-gray-300 dark:border-gray-600"
+                    onClick={() => openCalculatorDialog(idx)}
+                    type="button"
+                    title="Detailed entry"
+                  >
+                    <Calculator className="w-4 h-4" />
+                  </button>
+                </div>
+                
+                {/* Unit Dropdown */}
+                <div className="relative">
+                  <select
+                    className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 appearance-none pr-8"
+                    value={item.unit}
+                    onChange={e => handleUnitChange(idx, e.target.value)}
+                  >
+                    {(item.availableUnits || ["pcs", "kg", "g", "L", "mL", "box", "case", "bottle", "pack"]).map(unit => (
+                      <option key={unit} value={unit}>
+                        {unit}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                </div>
                 
                 {item.counted && (
                   <CheckCircle className="w-5 h-5 text-green-500 ml-auto" />
@@ -360,7 +528,7 @@ export default function PhysicalCountEntryPage() {
               ) : (
                 <>
                   <Save className="w-4 h-4" />
-                  Save Progress
+                  Save
                 </>
               )}
             </button>
@@ -370,7 +538,7 @@ export default function PhysicalCountEntryPage() {
               onClick={handlePause}
             >
               <Pause className="w-4 h-4" />
-              Pause & Exit
+              Pause
             </button>
             
             <button
@@ -378,7 +546,7 @@ export default function PhysicalCountEntryPage() {
               onClick={handleProceed}
             >
               <CheckCircle className="w-4 h-4" />
-              Proceed to Review
+              Review
             </button>
           </div>
           
@@ -389,6 +557,194 @@ export default function PhysicalCountEntryPage() {
           )}
         </div>
       </main>
+
+      {/* Calculator Dialog */}
+      {showCalculatorDialog && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              closeCalculatorDialog();
+            }
+          }}
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700">
+              <div>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                  Calculator
+                </h3>
+                {currentCalculatorItemIndex !== null && (
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    {items[currentCalculatorItemIndex].name}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={closeCalculatorDialog}
+                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-3 space-y-3">
+              {calculatorItems.map((calcItem) => (
+                <div key={calcItem.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-2">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex border border-gray-300 dark:border-gray-600 rounded overflow-hidden">
+                      <button
+                        onClick={() => updateCalculatorItem(calcItem.id, 'quantity', Math.max(0, calcItem.quantity - 1))}
+                        className="px-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors border-r border-gray-300 dark:border-gray-600"
+                      >
+                        <Minus className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => openNumberPad(calcItem.id, calcItem.quantity)}
+                        className="px-3 py-1 min-w-[60px] text-center bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm"
+                      >
+                        {calcItem.quantity}
+                      </button>
+                      <button
+                        onClick={() => updateCalculatorItem(calcItem.id, 'quantity', calcItem.quantity + 1)}
+                        className="px-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors border-l border-gray-300 dark:border-gray-600"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    </div>
+
+                    <select
+                      value={calcItem.unit}
+                      onChange={(e) => updateCalculatorItem(calcItem.id, 'unit', e.target.value)}
+                      className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+                    >
+                      {Object.keys(UNIT_CONVERSIONS).map(unit => (
+                        <option key={unit} value={unit}>{unit}</option>
+                      ))}
+                    </select>
+
+                    {calculatorItems.length > 1 && (
+                      <button
+                        onClick={() => removeCalculatorItem(calcItem.id)}
+                        className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded ml-auto"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {/* Add Item Button */}
+              <button
+                onClick={addCalculatorItem}
+                className="w-full py-2 border border-dashed border-gray-300 dark:border-gray-600 rounded text-gray-600 dark:text-gray-400 hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center justify-center gap-1 text-sm"
+              >
+                <Plus className="w-4 h-4" />
+                Add Unit
+              </button>
+            </div>
+
+            {/* Number Pad Overlay */}
+            {showNumberPad && (
+              <div className="absolute inset-0 bg-white dark:bg-gray-800 flex flex-col">
+                <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700">
+                  <h4 className="text-base font-semibold">Enter Quantity</h4>
+                  <button
+                    onClick={() => setShowNumberPad(false)}
+                    className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="flex-1 p-3 flex flex-col min-h-0">
+                  <div className="text-center mb-3">
+                    <input
+                      type="text"
+                      value={numberPadValue}
+                      readOnly
+                      className="text-lg font-mono text-center border border-gray-300 dark:border-gray-600 rounded p-2 w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 max-w-48 mx-auto mb-3">
+                    {[1,2,3,4,5,6,7,8,9].map(num => (
+                      <button
+                        key={num}
+                        onClick={() => numberPadInput(num.toString())}
+                        className="h-16 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-lg font-semibold"
+                      >
+                        {num}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => numberPadInput('.')}
+                      className="h-16 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-lg font-semibold"
+                    >
+                      .
+                    </button>
+                    <button
+                      onClick={() => numberPadInput('0')}
+                      className="h-16 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-lg font-semibold"
+                    >
+                      0
+                    </button>
+                    <button
+                      onClick={() => numberPadInput('backspace')}
+                      className="h-16 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-lg font-semibold"
+                    >
+                      ⌫
+                    </button>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => numberPadInput('clear')}
+                      className="flex-1 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded font-semibold text-sm"
+                    >
+                      Clear
+                    </button>
+                    <button
+                      onClick={confirmNumberPad}
+                      className="flex-1 py-2 bg-blue-600 text-white rounded font-semibold text-sm"
+                    >
+                      Confirm
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Footer with Base Total */}
+            <div className="border-t border-gray-200 dark:border-gray-700 p-3 space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-600 dark:text-gray-400">Total (grams):</span>
+                <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  {baseTotalGrams.toFixed(2)}g
+                </span>
+              </div>
+              
+              <div className="flex gap-2">
+                <button
+                  onClick={closeCalculatorDialog}
+                  className="flex-1 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded font-semibold text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmCalculatorTotal}
+                  className="flex-1 py-2 bg-blue-600 text-white rounded font-semibold text-sm"
+                >
+                  Select Total
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

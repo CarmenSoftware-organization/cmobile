@@ -269,7 +269,8 @@ Dashboard (Home)
 ├── Store Requisition
 │   ├── Create SR → Submit → Approvals → Issue
 ├── Receiving (Purchase Orders)
-│   ├── Select PO(s) → Create GRN → Item Entry → Submit
+│   ├── Select PO(s) → Create GR → Item Entry → Submit
+│   ├── Received  - Select GR(s) → Resume Receiving → Add OP → Item Entry → Submit
 ├── PR Approval  
 │   ├── PR List → PR Detail → [On Hand]/[On Order] → Approve/Reject
 ├── Stock Take
@@ -371,7 +372,7 @@ Dashboard (Home)
 
 **Components:**
 - Module cards with clear, consistent naming:
-  - "Good Receive Note" for receiving workflows
+  - "Receiving" for receiving workflows
   - "PR Approval" for purchase request approvals
   - "SR Approval" for store requisition approvals (updated from "Store Requisition" for better clarity and consistency)
   - "Physical Count" for inventory counting
@@ -447,26 +448,67 @@ Dashboard (Home)
 
 ### 5.4 Receiving Module (PO & GRN)
 
-#### 5.4.1 Enhanced Entry Points
-**Scan PO (New Primary Path):**
+#### 5.4.1 Enhanced Entry Points and Navigation
+
+**Primary Navigation Access:**
+- **Bottom Navigation**: "Receiving" tab routes directly to Pending POs list (`/receiving/pending-pos`) for immediate access to actionable items
+- **Dashboard Access**: "Receiving" from dashboard routes to receiving overview (`/receiving`) with comprehensive module options
+- **Optimized User Flow**: Most receiving work starts with pending deliveries, so bottom navigation provides the most efficient access path
+
+**Scan PO (Primary Workflow):**
 - **Smart QR/Barcode Scanning**: Camera-based scanning with instant PO recognition and validation
+- **Updated Scan Text**: "Scan to add PO to the Good Receive Note" for clearer user guidance
 - **Context-Aware Routing**: Automatic detection of Business Unit information in PO data for intelligent workflow routing
 - **Streamlined Flow**: Direct navigation to location selection when complete context is available (PO + BU + Vendor)
 - **Progressive Enhancement**: Three-tier approach based on available context (complete → partial → manual)
 - **Fallback Options**: Manual entry and traditional flow for edge cases and scan failures
 - **Visual Feedback**: Color-coded indicators for scan results (green=complete context, yellow=partial context, red=failed/not found)
 
-**Traditional PO Selection:**
+**Enhanced Pending POs List (Primary Entry Point):**
+- **Direct Access**: Bottom navigation routes immediately to pending purchase orders awaiting delivery
+- **Advanced Filtering System**:
+  - **Business Unit Selection**: Required for creating new GRNs, enables context-aware workflows
+  - **Delivery Date Filtering**: Comprehensive date range picker with calendar integration
+    - Predefined filter options (Today, Tomorrow, This Week, Next Week, Overdue)
+    - Custom date range selection with progressive date picking
+    - Smart display text showing current filter state
+    - Professional calendar integration using shadcn UI components
+  - **Search Functionality**: Multi-criteria search (PO number, vendor, description) with scan icon integration
+- **New GRN Button Enhancement**:
+  - **Context-Aware Behavior**: Disabled until specific Business Unit selected (not "All")
+  - **Business Unit Selection Bypass**: When BU selected, New GRN routes directly to vendor selection (`/receiving/new`) bypassing BU selection page
+  - **Streamlined Flow**: Eliminates redundant BU selection step by using filter context
+- **Draft GRN Management**: Draft GRN banner relocated to page footer for better visibility and contextual access
+- **Scan Integration**: Camera icon in search bar provides quick access to scan functionality
+
+**Traditional PO Selection (Enhanced):**
 - Business Unit selection followed by PO filtering and selection
 - Multi-PO GRN creation capabilities
-- **Comprehensive date range picker with calendar integration** for delivery date filtering:
-  - Predefined filter options (Today, This Week, Next Week, Overdue)
-  - Custom date range selection with progressive date picking
-  - Smart display text showing current filter state
-  - Professional calendar integration using shadcn UI components
 - **Currency grouping**: Purchase Orders grouped by currency with exchange rate display for multi-currency operations
+- **Enhanced Search**: PO selection includes scan icon for barcode scanning during vendor-specific selection
 
-#### 5.4.2 Smart PO Detection Logic
+#### 5.4.2 Streamlined Navigation Architecture
+
+**Eliminated PO Detail View:**
+- **Removed**: Separate PO detail view (`/receiving/[poId]`) eliminated to reduce navigation complexity
+- **Consolidated Functionality**: Resume Draft GRN functionality moved to Pending POs list footer banner
+- **Direct Action**: PO cards route directly to GRN creation workflow via location selection
+
+**Business Unit Selection Optimization:**
+- **Smart Bypass**: When specific BU selected in Pending POs, New GRN creation bypasses BU selection page entirely
+- **Context Preservation**: Selected BU stored in sessionStorage and passed via URL parameters
+- **Reduced Steps**: Traditional 6-step flow reduced to 5 steps when BU pre-selected
+- **Implementation**: 
+  ```
+  // From Pending POs with BU selected:
+  Pending POs → New GRN → Vendor Selection → PO Selection → Location Selection → GRN Detail
+  
+  // Traditional flow (when no BU context):
+  Dashboard → New GRN → BU Selection → Vendor Selection → PO Selection → Location Selection → GRN Detail
+  ```
+
+#### 5.4.3 Smart PO Detection Logic
+
 **Complete Context (PO with BU):**
 - Instant validation and context extraction from scanned PO
 - Direct routing to location selection bypassing BU selection
@@ -487,7 +529,8 @@ Dashboard (Home)
 - Graceful degradation to traditional flow with preserved user intent
 - **User Experience**: No dead ends, always provide next steps
 
-#### 5.4.3 Location Selection Enhancement
+#### 5.4.4 Location Selection Enhancement
+
 **Context-Aware Location Selection:**
 - Pre-populated delivery context (PO, BU, Vendor, Currency)
 - Location filtering based on Business Unit and delivery type
@@ -495,20 +538,26 @@ Dashboard (Home)
 - **Location Types**: Main Receiving Dock, Kitchen Receiving, Bar Storage, Housekeeping Storage, Maintenance Workshop
 - Direct navigation to GRN detail with complete context preservation
 
-#### 5.4.4 Enhanced Purchase Order Management
-**Enhanced PO List Features:**
-- Today's deliveries prioritization with smart filtering
-- **Enhanced PO Selection**: Multi-criteria search capabilities (PO number, product name, vendor) for efficient PO identification
-- Business Unit labeling (non-interactive) with consistent display
-- Batch selection capability for multi-PO GRNs
-- **Business Unit context**: Persistent business unit context throughout the receiving flow with search functionality
+#### 5.4.5 Enhanced Purchase Order Management
 
-**PO Details:**
-- Complete PO information display with vendor and currency details
-- Line item details with name-first display format
-- Expected vs. actual delivery tracking with variance indicators
+**Enhanced Pending POs Features:**
+- **Priority-Based Organization**: Today's deliveries prioritization with smart filtering and status indicators
+- **Comprehensive Search**: Multi-criteria search capabilities (PO number, vendor, description) with integrated scan functionality
+- **Business Unit Context**: Persistent business unit context throughout the receiving flow
+- **Status and Priority Indicators**: 
+  - Visual priority badges (Overdue, Due Today, Due Tomorrow, Due Soon, On Time)
+  - Color-coded status indicators for delivery urgency
+- **Batch Workflow Support**: Foundation for multi-PO GRN creation
+- **Enhanced PO Cards**: Complete PO information with vendor, business unit, delivery dates, and financial details
 
-#### 5.4.5 Enhanced Goods Receipt Note (GRN) Management
+**Draft GRN Integration:**
+- **Footer Banner**: Draft GRNs displayed in prominent footer banner with full details
+- **Resume Functionality**: Direct navigation to GRN detail for continuing incomplete work
+- **Contextual Information**: Each draft shows linked PO numbers, creation date, item count, and vendor
+- **Workflow Continuity**: Seamless transition between pending POs and draft GRNs
+
+#### 5.4.6 Enhanced Goods Receipt Note (GRN) Management
+
 **GRN Creation:**
 - Direct creation from selected PO(s) with context preservation
 - **Context Integration**: Seamless integration of scan-derived context (BU, vendor, location)
@@ -530,23 +579,37 @@ Dashboard (Home)
 - **Location-based item organization**: Items automatically grouped by their assigned store locations with clear visual separation and location headers showing item counts
 - **Status-based actions**: Resume, Continue, View based on GRN state
 - **Smart Defaults**: Pre-filled information based on scan context
+- **Business Dimensions Removal**: Job Code, Event, and Market Segment fields removed from item display for streamlined interface
 - Dual unit receiving (PO units or inventory units)
 - Real-time conversion calculations
 - Tax and discount display (read-only on mobile)
 - Complete audit logging with scan timestamps
 
-#### 5.4.6 Enhanced Business Rules
+#### 5.4.7 Enhanced Business Rules and Navigation
+
+- **Optimized Navigation Hierarchy**: Bottom navigation provides direct access to most-used functionality (Pending POs) while dashboard maintains comprehensive overview
 - **Unified Workflow Consistency**: Both scan PO and traditional New GRN flows use identical location selection interfaces and navigation patterns for consistent user experience
-- **Scan-First Approach**: Prioritize scan workflow while maintaining traditional access
-- **Context Preservation**: All scan-derived context maintained throughout workflow
-- **Navigation restrictions**: Cannot access GRNs directly without PO selection (enforces proper receiving workflow)
-- **Smart Routing**: Automatic workflow selection based on available context
+- **Context-Aware Routing**: Smart routing based on available context eliminates unnecessary steps
+- **Scan-First Integration**: Scan functionality integrated throughout receiving workflows via camera icons in search interfaces
+- **Context Preservation**: All scan-derived context and filter selections maintained throughout workflow
 - **Location-Based Item Filtering**: Items automatically filtered and grouped by their assigned store locations, ensuring users only see items relevant to their selected receiving locations
 - **Standardized Parameter Handling**: Both flows use consistent URL format with multiple `po` parameters for unified data flow
+- **Enhanced User Experience**: Reduced navigation complexity with intelligent workflow routing
 - No "Add Item" functionality (maintains traceability to source documents)
 - Tax/discount overrides only available on desktop
 - All receiving actions fully audited with scan metadata
-- **Enhanced Routing Flow**: Dashboard → [Scan PO OR Traditional] → Context Detection → Smart Routing → Location Selection → GRN Creation → Completion
+
+**Navigation Flow Optimization:**
+```
+Bottom Navigation Flow (Primary):
+Bottom Nav "Receiving" → Pending POs List → [Filter by BU] → Create GRN → Vendor Selection → PO Selection → Location Selection → GRN Detail
+
+Dashboard Flow (Comprehensive):
+Dashboard → Receiving Overview → [Scan PO | New GRN | Manage GRN] → Context-based routing
+
+Scan Flow (Fastest):
+Any Page → Scan PO → Context Detection → Location Selection → GRN Detail
+```
 
 ### 5.5 PR Approval Module
 
@@ -877,6 +940,7 @@ The system automatically determines PR progression based on item statuses using 
 - Clear field labeling
 - Inline validation
 - Error state handling
+- Stepper controls (+/- buttons) for numerical inputs (e.g., quantities, amounts) to enhance mobile usability, alongside direct keyboard input.
 
 **Selection Controls:**
 - Dropdown selects for mobile
@@ -1047,9 +1111,9 @@ Department Head Review → [Approve/Reject/Return] → Store Manager Review → 
 
 **Receiving Process Flow**
 ```
-Dashboard → PO List → Select PO(s) → Location Selection → Create GRN → Item Entry (with dual unit selection) → GRN Summary
-                                                                                                                    ↓
-                                                                                    Review Tax/Discount → Comments → Submit GRN
+Dashboard → [ (PO List → Select PO(s)) OR (Scan PO) OR (Navigate to PO Detail → [Resume Existing Draft GRN OR Initiate New GRN for this PO]) ] → Context Detection (if applicable for scan) → Smart Routing (if applicable for scan) → Location Selection → Create/Continue/Resume GRN → Item Entry (with dual unit selection) → GRN Summary
+                                                                                                                                                                                                                                                                                                                              ↓
+                                                                                                                                                                                                                                                                                                           Review Tax/Discount → Comments → Submit GRN
 ```
 
 **PR Approval Process Flow**

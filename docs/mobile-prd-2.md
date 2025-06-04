@@ -173,61 +173,120 @@ capture and analytics to every property.
 
 #### Receiving Navigation Flow
 
-- **Entry Point**: Users access the Receiving module through the "Purchase Orders" card on the dashboard. Direct access to GRN management is intentionally removed to enforce the proper receiving workflow.
+- **Entry Points**:
+  1. **Scan PO** (Primary Path)
+     - Quick scan-to-create GRN workflow
+     - Camera-based barcode/QR code scanning
+     - Performance target: 30-60 seconds end-to-end
+     - Direct access to GRN creation for complete context scans
+  
+  2. **New Good Receive Note** (Traditional Path)
+     - Manual PO selection workflow
+     - Business Unit selection
+     - Multi-PO GRN creation
+  
+  3. **Manage Good Receive Note**
+     - View existing GRNs
+     - Edit draft GRNs
+     - Complete partial GRNs
 
-- **Routing Flow**:
-  1. **Dashboard → Purchase Orders**: Users first see the batch receiving/PO list screen.
-  2. **PO Selection**: Users select one or more POs to process.
-  3. **Business Unit Selection**: When creating GRNs, users select from their assigned hotel properties only.
-  4. **GRN Creation**: System creates GRN(s) based on selected PO(s).
-  5. **GRN Detail**: Users are directed to the GRN detail page for item receiving.
-  6. **Item Processing**: Users verify and update received quantities and other details.
-  7. **GRN Completion**: Users finalize the GRN with appropriate status.
+#### Scan PO Workflow (Critical Feature)
 
-- **Navigation Restrictions**:
-  - Users cannot directly access GRNs without going through the PO selection process.
-  - This enforces data integrity by ensuring all GRNs are properly linked to source POs.
-  - The "Add Item" functionality is intentionally removed to maintain traceability to source documents.
+- **Three-Tier Detection Approach**:
+  1. **Complete Context**: QR code contains full PO data, BU, and vendor information
+     - Auto-detect BU and vendor
+     - Navigate directly to location selection
+     - Performance target: ~30 seconds end-to-end
+     - No manual data entry required
+  
+  2. **Partial Context**: Barcode contains PO number only
+     - Extract PO number
+     - Present BU selection
+     - Navigate to location selection
+     - Performance target: ~60 seconds end-to-end
+     - Minimal manual input required
+  
+  3. **No Match**: Invalid or unrecognized codes
+     - Manual entry option
+     - Fallback to traditional workflow
 
-#### General Receiving Features
+#### Location Management
 
-- View "Today's Deliveries" filtered by vendor/location with all
-  accessible BUs shown in a single list. Each transaction displays its
-  BU as a non-interactive label.
+- **Multiple Receiving Locations**:
+  - Main Receiving Dock
+  - Kitchen Receiving
+  - Bar Storage Entrance
+  - Housekeeping Storage
+  - Maintenance Workshop
 
-- **Enhanced Date Filtering**: Comprehensive date range picker with calendar integration for delivery date filtering, including:
-  - Predefined filter options (Today, This Week, Next Week, Overdue)
-  - Custom date range selection with progressive date picking
-  - Smart display text showing current filter state
-  - Professional calendar integration using shadcn UI components
+- **Location-Based Organization**:
+  - Items filtered by selected locations
+  - Clear location headers with item counts
+  - Visual grouping by location
+  - Location selection affects item visibility
 
-- **Currency Grouping**: Purchase Orders grouped by currency with exchange rate display for multi-currency operations
+#### GRN Processing
 
-- **Business Unit Context**: Persistent business unit context throughout the receiving flow with search functionality and detailed information
+- **Streamlined Interface**:
+  - Three main tabs:
+    1. Items tab: Core receiving functionality
+    2. Summary tab: Financial totals and approval
+    3. Comments tab: Chat-style communication
+  
+- **Enhanced Unit Handling**:
+  - Dual unit support (PO unit and inventory unit)
+  - Separate unit dropdowns for received and FOC quantities
+  - Real-time conversion calculations
+  - Conversion display (e.g., "1 case = 12 bottles")
+  
+- **Item Management**:
+  - Location-based item grouping
+  - Item detail view for each product
+  - Ability to add more POs to existing GRN
+  - Business Dimensions support (Project Code, Market Segment, Event)
 
-- **Comprehensive GRN Management**: Status-based actions (Resume, Continue, View) with multi-tab interface for GRN details including:
-  - Items tab for item-level receiving with quantities, FOC, and unit management
-  - Summary tab for overall GRN information
-  - Signature tab for digital signature capture and comments
-  - Extra Cost tab for additional charges
-  - Attachments tab for supporting documents
+#### GRN States
 
-- **Enhanced PO Selection**: Multi-criteria search capabilities (PO number, product name, vendor) for efficient PO identification
+1. **Draft**
+   - GRN is being created or edited
+   - If any item quantity is empty or zero, GRN remains in Draft
+   - Can be edited or voided (voiding returns all items to PO remaining)
 
-- PO line table with name-first product listing; PO and stock units with
-  conversion logic.
+2. **Received**
+   - All item quantities are greater than zero
+   - GRN status automatically changes to Received
+   - Can still be edited or voided
+   - If any item quantity is set back to zero, status returns to Draft
 
-- "Receive as" toggle (units); attachments; tax/discount information
-  always displayed as read-only on mobile—no override/edit controls.
+3. **Committed**
+   - User explicitly commits the GRN (after review/approval)
+   - GRN is finalized and cannot be edited
+   - Cannot be voided
 
-- All session actions logged with before/after values, user, and
-  timestamp.
+4. **Void**
+   - Can be applied to GRNs in Draft or Received state
+   - All items in the GRN are returned to the PO remaining quantity
+   - GRN is marked as cancelled/invalid
 
-- Support for Business Dimensions (configurable header/line
-  fields).
+#### Business Rules
 
-- **\[On Hand\] and \[On Order\] information is NOT shown or accessible
-  anywhere in Receiving, PO, or GRN flows on mobile.**
+- Strict role- and unit-based data access
+- No direct GRN access without PO selection
+- Tax and discount values are read-only on mobile
+- Support for Business Dimensions (Project Code, Market Segment, Event)
+- Per-session audit trail
+- Location-based item filtering
+- Real-time validation and conversion calculations
+
+#### Mobile-Specific Optimizations
+
+- Touch-friendly interfaces
+- Simplified workflows
+- Location-based organization
+- Quick access to key functions
+- Camera integration for damage documentation
+- Chat-style communication interface
+- Removed Signature and Extra Cost tabs for streamlined experience
 
 ### GRN State Workflow & Business Rules
 

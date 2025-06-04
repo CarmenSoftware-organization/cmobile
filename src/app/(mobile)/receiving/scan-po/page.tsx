@@ -193,7 +193,7 @@ export default function ScanPOPage() {
           </Button>
           <div>
             <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Scan Purchase Order</h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Scan PO barcode to create GRN</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Scan to add PO to the Good Receive Note</p>
           </div>
         </div>
       </div>

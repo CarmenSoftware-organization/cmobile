@@ -89,6 +89,12 @@ export default function ViewGRNPage() {
                 <div className="font-medium">{grnData.receivedDate}</div>
               </div>
             )}
+            {grnData.status === "Committed" && (
+              <div>
+                <span className="text-muted-foreground">Committed Date:</span>
+                <div className="font-medium">{grnData.commitDate || "Not set"}</div>
+              </div>
+            )}
             <div>
               <span className="text-muted-foreground">Receipt Location:</span>
               <div className="font-medium">{grnData.receiptLocation}</div>

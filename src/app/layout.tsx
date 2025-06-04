@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ui/theme-provider";
+import { StagewiseToolbar } from '@stagewise/toolbar-next';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -40,6 +41,10 @@ export const metadata: Metadata = {
   },
 };
 
+const stagewiseConfig = {
+  plugins: []
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -55,6 +60,9 @@ export default function RootLayout({
       >
         <ThemeProvider defaultTheme="dark" storageKey="carmen-theme">
           {children}
+          {process.env.NODE_ENV === 'development' && (
+            <StagewiseToolbar config={stagewiseConfig} />
+          )}
         </ThemeProvider>
       </body>
     </html>

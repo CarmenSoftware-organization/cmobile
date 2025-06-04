@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   ArrowLeft,
@@ -36,22 +36,7 @@ export default function NotificationsPage() {
     loadNotifications();
   }, []);
 
-  useEffect(() => {
-    filterNotifications();
-  }, [notifications, searchQuery, filterType]);
-
-  const loadNotifications = () => {
-    // Subscribe to notification service
-    const unsubscribe = notificationService.subscribe((newNotifications) => {
-      setNotifications(newNotifications);
-      setIsLoading(false);
-    });
-
-    // Return cleanup function
-    return unsubscribe;
-  };
-
-  const filterNotifications = () => {
+  const filterNotifications = useCallback(() => {
     let filtered = notifications;
 
     // Filter by read status
@@ -73,6 +58,21 @@ export default function NotificationsPage() {
     filtered.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
     setFilteredNotifications(filtered);
+  }, [notifications, searchQuery, filterType]);
+
+  useEffect(() => {
+    filterNotifications();
+  }, [filterNotifications]);
+
+  const loadNotifications = () => {
+    // Subscribe to notification service
+    const unsubscribe = notificationService.subscribe((newNotifications) => {
+      setNotifications(newNotifications);
+      setIsLoading(false);
+    });
+
+    // Return cleanup function
+    return unsubscribe;
   };
 
   const markAsRead = (notificationId: string) => {

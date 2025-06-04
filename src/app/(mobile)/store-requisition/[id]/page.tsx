@@ -627,45 +627,95 @@ export default function StoreRequisitionDetailPage() {
                   </div>
                   <div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">Approved:</div>
-                    <div className="flex flex-col gap-1">
+                    <div className="flex items-center mt-1">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9 rounded-r-none border-r-0"
+                        onClick={() => {
+                          const currentValue = parseFloat(String(item.approvedQty ?? item.requestedQty)) || 0;
+                          updateApprovedQuantity(item.id, Math.max(0, currentValue - 1).toString());
+                        }}
+                        aria-label="Decrease approved quantity"
+                      >
+                        -
+                      </Button>
                       <input
                         type="number"
-                        className="w-full border border-gray-300 dark:border-gray-700 rounded-md p-1 text-center text-sm"
-                        value={item.approvedQty || item.requestedQty}
+                        className="w-full h-9 px-2 py-1.5 border-t border-b border-input text-center text-sm focus:ring-0 focus:outline-none"
+                        value={item.approvedQty ?? item.requestedQty}
                         min="0"
                         onChange={(e) => updateApprovedQuantity(item.id, e.target.value)}
+                        placeholder="0"
                       />
-                      <select 
-                        className="w-full border border-gray-300 dark:border-gray-700 rounded-md py-1 px-1 bg-white dark:bg-gray-800 text-sm"
-                        value={item.approvedUnit || item.unit}
-                        onChange={(e) => updateApprovedUnit(item.id, e.target.value)}
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9 rounded-l-none border-l-0"
+                        onClick={() => {
+                          const currentValue = parseFloat(String(item.approvedQty ?? item.requestedQty)) || 0;
+                          updateApprovedQuantity(item.id, (currentValue + 1).toString());
+                        }}
+                        aria-label="Increase approved quantity"
                       >
-                        {item.unitOptions?.map(unitOption => (
-                          <option key={unitOption} value={unitOption}>{unitOption}</option>
-                        )) || <option value={item.unit}>{item.unit}</option>}
-                      </select>
+                        +
+                      </Button>
                     </div>
+                    <select 
+                      className="w-full border border-gray-300 dark:border-gray-700 rounded-md py-1 px-1 bg-white dark:bg-gray-800 text-sm mt-1 h-9"
+                      value={item.approvedUnit || item.unit}
+                      onChange={(e) => updateApprovedUnit(item.id, e.target.value)}
+                    >
+                      {item.unitOptions?.map(unitOption => (
+                        <option key={unitOption} value={unitOption}>{unitOption}</option>
+                      )) || <option value={item.unit}>{item.unit}</option>}
+                    </select>
                   </div>
                   <div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">Issue Qty:</div>
-                    <div className="flex flex-col gap-1">
+                    <div className="flex items-center mt-1">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9 rounded-r-none border-r-0"
+                        onClick={() => {
+                          const currentValue = parseFloat(String(item.issuedQty)) || 0;
+                          updateIssuedQuantity(item.id, Math.max(0, currentValue - 1).toString());
+                        }}
+                        aria-label="Decrease issue quantity"
+                      >
+                        -
+                      </Button>
                       <input
                         type="number"
-                        className="w-full border border-gray-300 dark:border-gray-700 rounded-md p-1 text-center text-sm"
+                        className="w-full h-9 px-2 py-1.5 border-t border-b border-input text-center text-sm focus:ring-0 focus:outline-none"
                         value={item.issuedQty || 0}
                         min="0"
                         onChange={(e) => updateIssuedQuantity(item.id, e.target.value)}
+                        placeholder="0"
                       />
-                      <select 
-                        className="w-full border border-gray-300 dark:border-gray-700 rounded-md py-1 px-1 bg-white dark:bg-gray-800 text-sm"
-                        value={item.issuedUnit || item.unit}
-                        onChange={(e) => updateIssuedUnit(item.id, e.target.value)}
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9 rounded-l-none border-l-0"
+                        onClick={() => {
+                          const currentValue = parseFloat(String(item.issuedQty)) || 0;
+                          updateIssuedQuantity(item.id, (currentValue + 1).toString());
+                        }}
+                        aria-label="Increase issue quantity"
                       >
-                        {item.unitOptions?.map(unitOption => (
-                          <option key={unitOption} value={unitOption}>{unitOption}</option>
-                        )) || <option value={item.unit}>{item.unit}</option>}
-                      </select>
+                        +
+                      </Button>
                     </div>
+                    <select 
+                      className="w-full border border-gray-300 dark:border-gray-700 rounded-md py-1 px-1 bg-white dark:bg-gray-800 text-sm mt-1 h-9"
+                      value={item.issuedUnit || item.unit}
+                      onChange={(e) => updateIssuedUnit(item.id, e.target.value)}
+                    >
+                      {item.unitOptions?.map(unitOption => (
+                        <option key={unitOption} value={unitOption}>{unitOption}</option>
+                      )) || <option value={item.unit}>{item.unit}</option>}
+                    </select>
                   </div>
                 </div>
                 

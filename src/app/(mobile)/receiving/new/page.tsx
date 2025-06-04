@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Calendar, ChevronDown } from "lucide-react";
+import { ChevronLeft, Calendar, ChevronDown, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
 import { mockPOs } from "@/data/mockPOData";
@@ -355,13 +355,25 @@ export default function NewGoodReceiveNotePage() {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          <input
-            type="text"
-            placeholder="Search PO number or product..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full mb-3 px-3 py-2 border rounded focus:outline-none focus:ring"
-          />
+          <div className="relative mb-3">
+            <input
+              type="text"
+              placeholder="Search PO number or product..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full px-3 py-2 pr-12 border rounded focus:outline-none focus:ring"
+            />
+            {/* Scan PO Icon Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-1 top-1/2 -translate-y-1/2 p-2"
+              onClick={() => router.push("/receiving/scan-po")}
+              aria-label="Scan PO"
+            >
+              <Camera className="w-5 h-5 text-primary" />
+            </Button>
+          </div>
           <div className="space-y-3">
             {filteredPOs.length === 0 ? (
               <div className="text-muted-foreground text-center">No POs for this vendor.</div>

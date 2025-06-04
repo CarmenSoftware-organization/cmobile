@@ -432,15 +432,48 @@ export default function CreateStoreRequisitionPage() {
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label htmlFor="requestedQty" className="block font-medium mb-1">Quantity</label>
-                      <input
-                        id="requestedQty"
-                        name="requestedQty"
-                        type="number"
-                        min="1"
-                        step="1"
-                        value={newItem.requestedQty}
-                        onChange={handleItemChange}
-                      />
+                      <div className="flex items-center mt-1">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-9 rounded-r-none border-r-0"
+                          onClick={() => {
+                            const currentValue = parseFloat(String(newItem.requestedQty)) || 0;
+                            const newValue = Math.max(1, currentValue - 1); // Min quantity is 1 for SR
+                            setNewItem(prev => ({ ...prev, requestedQty: newValue }));
+                          }}
+                          aria-label="Decrease quantity"
+                        >
+                          -
+                        </Button>
+                        <input
+                          id="requestedQty"
+                          name="requestedQty"
+                          type="number"
+                          min="1"
+                          step="1"
+                          value={newItem.requestedQty}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            // Allow empty string for clearing, or parse to number
+                            setNewItem(prev => ({ ...prev, requestedQty: val === '' ? '' : parseFloat(val) || 1 }));
+                          }}
+                          className="w-full h-9 px-2 py-1.5 border-t border-b border-input text-center text-sm focus:ring-0 focus:outline-none"
+                          placeholder="1"
+                        />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-9 rounded-l-none border-l-0"
+                          onClick={() => {
+                            const currentValue = parseFloat(String(newItem.requestedQty)) || 0;
+                            setNewItem(prev => ({ ...prev, requestedQty: currentValue + 1 }));
+                          }}
+                          aria-label="Increase quantity"
+                        >
+                          +
+                        </Button>
+                      </div>
                     </div>
                     <div>
                       <label htmlFor="unit" className="block font-medium mb-1">Unit</label>

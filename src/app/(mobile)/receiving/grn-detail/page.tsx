@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { 
   ChevronLeft, 
   MapPin, 
-  X
+  X,
+  Trash2
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { mockPOs, type POItem as SharedPOItem } from "@/data/mockPOData";
-import { BusinessUnitLabel } from "@/components/ui/business-unit-label";
 import { CommentsWithAttachments, Comment as CommentType } from "@/components/ui/file-attachments";
 import { getGRNById, mockVendors, type MockGRN, type GRNComment } from "@/data/mockGRNData";
 
@@ -229,6 +229,7 @@ export default function GrnDetailPage() {
     description: existingGRN?.notes || '',
     receiver: existingGRN?.createdBy || '',
     vendorId: existingGRN?.vendorId || '',
+    businessUnit: existingGRN?.businessUnit || selectedPOs[0]?.businessUnit || '',
     isConsignment: false,
     isCashPayment: false,
     currency: existingGRN?.currency || 'THB',
@@ -246,6 +247,7 @@ export default function GrnDetailPage() {
         description: existingGRN.notes || '',
         receiver: existingGRN.createdBy || '',
         vendorId: existingGRN.vendorId || '',
+        businessUnit: existingGRN.businessUnit || '',
         isConsignment: false,
         isCashPayment: false,
         currency: existingGRN.currency || 'THB',
@@ -253,6 +255,29 @@ export default function GrnDetailPage() {
       });
     }
   }, [existingGRN]);
+
+  // Default vendor and business unit from PO if not editing existing GRN
+  useEffect(() => {
+    if (!existingGRN && selectedPOs.length > 0) {
+      const po = selectedPOs[0];
+      let vendorId = '';
+      if (po.vendorId) {
+        vendorId = String(po.vendorId);
+      } else if (po.vendor) {
+        const vendorObj = mockVendors.find(v => v.name === po.vendor);
+        if (vendorObj) vendorId = String(vendorObj.id);
+      }
+      // Only update if vendorId or businessUnit is not already set
+      if (grnFormData.vendorId !== vendorId || !grnFormData.businessUnit) {
+        setGrnFormData(prev => ({
+          ...prev,
+          vendorId: vendorId,
+          businessUnit: po.businessUnit || '',
+        }));
+      }
+    }
+    // eslint-disable-next-line
+  }, [existingGRN, selectedPOs]);
 
   // Handle form field changes
   const handleFormChange = (field: string, value: string | number | boolean) => {
@@ -348,21 +373,11 @@ export default function GrnDetailPage() {
     setGrnItems(items => items.map((item, i) => i === idx ? { ...item, focUnit: value } : item) as typeof items);
   };
 
-  // Add at the top, after other handlers:
-  const eventOptions = [
-    "Annual Gala Dinner", "Daily Operations", "Corporate Retreat", "Wedding Reception", "Conference", "Gala Dinner", "Product Launch", "Holiday Celebration", "Training Session", "Team Building", "Special Occasion", "Maintenance Work", "Emergency"
-  ];
-  const marketSegmentOptions = [
-    "F&B", "Executive Lounge", "Housekeeping", "Front Office", "Maintenance", "Security", "Administration", "Events & Banquets", "Spa & Wellness", "Recreation"
-  ];
-  const jobCodeOptions = [
-    "JC-2025-001", "JC-2025-002", "JC-2025-003", "JC-2025-004"
-  ];
-
-  const handleBusinessDimensionChange = (idx: number, field: 'jobCode' | 'event' | 'marketSegment', value: string) => {
-    setGrnItems(items => items.map((item, i) =>
-      i === idx ? { ...item, [field]: value } : item
-    ));
+  // Add delete item function
+  const handleDeleteItem = (itemIndex: number) => {
+    if (confirm('Are you sure you want to delete this item from the GRN?')) {
+      setGrnItems(items => items.filter((_, i) => i !== itemIndex));
+    }
   };
 
   // Financial summary (using existing GRN summary if available)
@@ -418,7 +433,7 @@ export default function GrnDetailPage() {
     const grnId = `GRN-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
     // Use existing GRN vendor or first selected PO vendor
     const vendorName = existingGRN?.vendorName || mockVendors.find(v => v.id === selectedPOs[0]?.vendorId)?.name || '';
-    const businessUnit = existingGRN?.businessUnit || selectedPOs[0]?.business_unit || '';
+    const businessUnit = existingGRN?.businessUnit || selectedPOs[0]?.businessUnit || '';
     // Navigate to confirmation page with GRN details, always include vendor and BU
     const params = new URLSearchParams({
       grnId,
@@ -454,15 +469,27 @@ export default function GrnDetailPage() {
   const groupedItems = groupItemsByLocation(grnItems);
 
   function handleAddPO() {
-    // Always use the vendorId and businessUnit from the current GRN for filtering
-    const vendorId = existingGRN?.vendorId;
-    const businessUnit = existingGRN?.businessUnit;
-    if (vendorId && businessUnit) {
-      // Navigate to the PO selection page, pre-filtered for this vendor and BU, skip vendor selection and new GRN page
-      router.push(`/receiving/new?addToGRN=true&skipVendorSelect=true&skipNewGRN=true&vendorId=${vendorId}&bu=${encodeURIComponent(businessUnit)}`);
-    } else {
-      alert('Vendor or Business Unit not found.');
+    // Use values from grnFormData as primary source
+    const businessUnit = grnFormData.businessUnit || existingGRN?.businessUnit || selectedPOs[0]?.businessUnit;
+    const vendorId = grnFormData.vendorId || existingGRN?.vendorId || selectedPOs[0]?.vendorId;
+    console.log('DEBUG Add PO:', {
+      grnFormDataVendorId: grnFormData.vendorId,
+      grnFormDataBusinessUnit: grnFormData.businessUnit,
+      existingGRNVendorId: existingGRN?.vendorId,
+      existingGRNBusinessUnit: existingGRN?.businessUnit,
+      selectedPOVendorId: selectedPOs[0]?.vendorId,
+      selectedPOBusinessUnit: selectedPOs[0]?.businessUnit
+    });
+    if (!businessUnit || businessUnit === 'No BU') {
+      alert('Please select a Business Unit in the GRN header before adding a PO.');
+      return;
     }
+    if (!vendorId) {
+      alert('Vendor not found.');
+      return;
+    }
+    // Route to PO selection, pre-filtered for this BU and vendor
+    router.push(`/receiving/new?addToGRN=true&skipVendorSelect=true&skipNewGRN=true&vendorId=${vendorId}&bu=${encodeURIComponent(businessUnit)}`);
   }
 
   return (
@@ -476,12 +503,11 @@ export default function GrnDetailPage() {
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
-          <div>
-            <h1 className="text-xl font-bold leading-tight">
-              {existingGRN ? `GRN ${existingGRN.grnNumber}` : "Create GRN"}
-            </h1>
-            {existingGRN && (
-              <div className="flex items-center gap-2 mt-1">
+          {/* Only show GRN number and status in header for existing GRN, no title or vendor */}
+          {existingGRN && (
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xl font-bold leading-tight">GRN {existingGRN.grnNumber}</span>
                 <span className={`rounded px-2 py-0.5 text-xs font-medium ${
                   existingGRN.status === "Draft" ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300" :
                   existingGRN.status === "Received" ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300" :
@@ -489,17 +515,35 @@ export default function GrnDetailPage() {
                 }`}>
                   {existingGRN.status}
                 </span>
-                <span className="text-xs text-muted-foreground">
-                  {existingGRN.vendorName}
-                </span>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+          {/* For create mode, show the title */}
+          {!existingGRN && (
+            <div>
+              <h1 className="text-xl font-bold leading-tight">Create GRN</h1>
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  className="border-none bg-transparent text-sm font-medium text-primary cursor-default"
+                  value={grnFormData.businessUnit || "No BU"}
+                  readOnly
+                  tabIndex={-1}
+                  aria-label="Business Unit"
+                  style={{ pointerEvents: 'none', width: 'auto' }}
+                />
+              </div>
+            </div>
+          )}
         </div>
-        {existingGRN && (
-          <div className="text-right">
-            <div className="text-sm font-medium">{existingGRN.totalValue}</div>
-            <div className="text-xs text-muted-foreground">{existingGRN.itemCount} items</div>
+        {/* Edit/Delete buttons for existing GRN in Draft or Received state */}
+        {existingGRN && (existingGRN.status === "Draft" || existingGRN.status === "Received") && (
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => {/* trigger edit mode logic here */}}>
+              Edit
+            </Button>
+            <Button size="sm" variant="destructive" onClick={() => {/* trigger delete logic here */}}>
+              Delete
+            </Button>
           </div>
         )}
       </div>
@@ -508,7 +552,6 @@ export default function GrnDetailPage() {
       {existingGRN && (
         <Card className="p-3 bg-card text-card-foreground mb-4">
           <div className="flex items-center justify-between mb-2">
-            <BusinessUnitLabel assignedBusinessUnits={[{ id: 1, name: existingGRN.businessUnit }]} />
             <div className="text-xs text-muted-foreground">
               Created: {existingGRN.createdDate}
             </div>
@@ -516,6 +559,11 @@ export default function GrnDetailPage() {
           {existingGRN.receivedDate && (
             <div className="text-xs text-muted-foreground">
               <span className="font-medium">Received:</span> {existingGRN.receivedDate}
+            </div>
+          )}
+          {existingGRN.status === "Committed" && (
+            <div className="text-xs text-muted-foreground">
+              <span className="font-medium">Committed:</span> {existingGRN.commitDate || "Not set"}
             </div>
           )}
         </Card>
@@ -554,19 +602,8 @@ export default function GrnDetailPage() {
             </div>
           </div>
 
-          {/* Row 2: Invoice Date and Invoice# */}
+          {/* Row 2: Invoice# and Invoice Date */}
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">
-                Invoice Date
-              </label>
-              <input
-                type="date"
-                value={grnFormData.invoiceDate}
-                onChange={(e) => handleFormChange('invoiceDate', e.target.value)}
-                className="w-full px-2 py-1.5 border border-input rounded-md text-sm"
-              />
-            </div>
             <div>
               <label className="block text-sm font-medium text-muted-foreground mb-1">
                 Invoice#
@@ -576,6 +613,17 @@ export default function GrnDetailPage() {
                 value={grnFormData.invoiceNumber}
                 onChange={(e) => handleFormChange('invoiceNumber', e.target.value)}
                 placeholder="Enter invoice number"
+                className="w-full px-2 py-1.5 border border-input rounded-md text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1">
+                Invoice Date
+              </label>
+              <input
+                type="date"
+                value={grnFormData.invoiceDate}
+                onChange={(e) => handleFormChange('invoiceDate', e.target.value)}
                 className="w-full px-2 py-1.5 border border-input rounded-md text-sm"
               />
             </div>
@@ -768,14 +816,23 @@ export default function GrnDetailPage() {
                               <p className="text-sm text-muted-foreground">SKU: {item.sku}</p>
                               <p className="text-sm text-muted-foreground">PO: {item.poNumber}</p>
                             </div>
-                            <button 
-                              className="text-blue-600 text-sm hover:underline"
-                              onClick={() => router.push(`/receiving/grn-detail/item/${item.sku}`)}
-                            >
-                              Detail &gt;
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                                onClick={() => handleDeleteItem(idx)}
+                                aria-label="Delete item"
+                                title="Delete item"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                              <button 
+                                className="text-blue-600 text-sm hover:underline"
+                                onClick={() => router.push(`/receiving/grn-detail/item/${item.sku}`)}
+                              >
+                                Detail &gt;
+                              </button>
+                            </div>
                           </div>
-                          
                           <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
                               <span className="text-muted-foreground">Ordered:</span>
@@ -786,25 +843,51 @@ export default function GrnDetailPage() {
                               <div className="font-medium">{item.remaining} {item.orderUnit}</div>
                             </div>
                           </div>
-                          
-                          <div className="space-y-4">
+                          <div className="space-y-4 mt-2">
                             <div className="grid grid-cols-2 gap-2">
                               <div>
                                 <label className="text-sm text-muted-foreground">Received Qty</label>
-                                <input
-                                  type="number"
-                                  value={item.receivedQty}
-                                  onChange={(e) => handleQtyChange(idx, e.target.value)}
-                                  className="w-full mt-1 px-2 py-1.5 border border-input rounded-md text-sm"
-                                  placeholder="0"
-                                />
+                                <div className="flex items-center mt-1">
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-9 w-9 rounded-r-none border-r-0"
+                                    onClick={() => {
+                                      const currentValue = parseFloat(item.receivedQty) || 0;
+                                      handleQtyChange(idx, Math.max(0, currentValue - 1).toString());
+                                    }}
+                                    aria-label="Decrease received quantity"
+                                  >
+                                    -
+                                  </Button>
+                                  <input
+                                    type="number"
+                                    value={item.receivedQty}
+                                    onChange={(e) => handleQtyChange(idx, e.target.value)}
+                                    className="w-full h-9 px-2 py-1.5 border-t border-b border-input text-center text-sm focus:ring-0 focus:outline-none"
+                                    placeholder="0"
+                                    min="0"
+                                  />
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-9 w-9 rounded-l-none border-l-0"
+                                    onClick={() => {
+                                      const currentValue = parseFloat(item.receivedQty) || 0;
+                                      handleQtyChange(idx, (currentValue + 1).toString());
+                                    }}
+                                    aria-label="Increase received quantity"
+                                  >
+                                    +
+                                  </Button>
+                                </div>
                               </div>
                               <div>
                                 <label className="text-sm text-muted-foreground">Unit</label>
                                 <select
                                   value={item.receivedUnit}
                                   onChange={(e) => handleReceivedUnitChange(idx, e.target.value)}
-                                  className="w-full mt-1 px-2 py-1.5 border border-input rounded-md text-sm"
+                                  className="w-full mt-1 h-9 px-2 py-1.5 border border-input rounded-md text-sm"
                                 >
                                   <option value="case">Case</option>
                                   <option value="box">Box</option>
@@ -814,24 +897,50 @@ export default function GrnDetailPage() {
                                 </select>
                               </div>
                             </div>
-                            
                             <div className="grid grid-cols-2 gap-2">
                               <div>
                                 <label className="text-sm text-muted-foreground">FOC Qty</label>
-                                <input
-                                  type="number"
-                                  value={item.focQty}
-                                  onChange={(e) => handleFocQtyChange(idx, e.target.value)}
-                                  className="w-full mt-1 px-2 py-1.5 border border-input rounded-md text-sm"
-                                  placeholder="0"
-                                />
+                                <div className="flex items-center mt-1">
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-9 w-9 rounded-r-none border-r-0"
+                                    onClick={() => {
+                                      const currentValue = parseFloat(item.focQty) || 0;
+                                      handleFocQtyChange(idx, Math.max(0, currentValue - 1).toString());
+                                    }}
+                                    aria-label="Decrease FOC quantity"
+                                  >
+                                    -
+                                  </Button>
+                                  <input
+                                    type="number"
+                                    value={item.focQty}
+                                    onChange={(e) => handleFocQtyChange(idx, e.target.value)}
+                                    className="w-full h-9 px-2 py-1.5 border-t border-b border-input text-center text-sm focus:ring-0 focus:outline-none"
+                                    placeholder="0"
+                                    min="0"
+                                  />
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-9 w-9 rounded-l-none border-l-0"
+                                    onClick={() => {
+                                      const currentValue = parseFloat(item.focQty) || 0;
+                                      handleFocQtyChange(idx, (currentValue + 1).toString());
+                                    }}
+                                    aria-label="Increase FOC quantity"
+                                  >
+                                    +
+                                  </Button>
+                                </div>
                               </div>
                               <div>
                                 <label className="text-sm text-muted-foreground">Unit</label>
                                 <select
                                   value={item.focUnit}
                                   onChange={(e) => handleFocUnitChange(idx, e.target.value)}
-                                  className="w-full mt-1 px-2 py-1.5 border border-input rounded-md text-sm"
+                                  className="w-full mt-1 h-9 px-2 py-1.5 border border-input rounded-md text-sm"
                                 >
                                   <option value="case">Case</option>
                                   <option value="box">Box</option>
@@ -841,62 +950,19 @@ export default function GrnDetailPage() {
                                 </select>
                               </div>
                             </div>
-                            
-                            <div className="grid grid-cols-1 gap-2 mt-2">
-                              <div>
-                                <label className="text-xs text-muted-foreground">Job Code</label>
-                                <select
-                                  className="w-full border border-input rounded-md p-2 text-sm bg-white dark:bg-gray-800"
-                                  value={item.jobCode || item.itemDetail?.jobCode || '-'}
-                                  onChange={e => handleBusinessDimensionChange(idx, 'jobCode', e.target.value)}
-                                >
-                                  <option value="">Select job code</option>
-                                  {jobCodeOptions.map(opt => (
-                                    <option key={opt} value={opt}>{opt}</option>
-                                  ))}
-                                </select>
-                              </div>
-                              <div>
-                                <label className="text-xs text-muted-foreground">Event</label>
-                                <select
-                                  className="w-full border border-input rounded-md p-2 text-sm bg-white dark:bg-gray-800"
-                                  value={item.event || item.itemDetail?.event || '-'}
-                                  onChange={e => handleBusinessDimensionChange(idx, 'event', e.target.value)}
-                                >
-                                  <option value="">Select event</option>
-                                  {eventOptions.map(opt => (
-                                    <option key={opt} value={opt}>{opt}</option>
-                                  ))}
-                                </select>
-                              </div>
-                              <div>
-                                <label className="text-xs text-muted-foreground">Market Segment</label>
-                                <select
-                                  className="w-full border border-input rounded-md p-2 text-sm bg-white dark:bg-gray-800"
-                                  value={item.marketSegment || item.itemDetail?.marketSegment || '-'}
-                                  onChange={e => handleBusinessDimensionChange(idx, 'marketSegment', e.target.value)}
-                                >
-                                  <option value="">Select segment</option>
-                                  {marketSegmentOptions.map(opt => (
-                                    <option key={opt} value={opt}>{opt}</option>
-                                  ))}
-                                </select>
-                              </div>
-                            </div>
-                            
-                            {/* Item Comment */}
-                            {(item.itemDetail?.comment || item.comment) && (
-                              <div className="mt-3 p-3 bg-muted/50 dark:bg-muted/30 rounded-md border border-border">
-                                <div className="flex items-start gap-2">
-                                  <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
-                                  <div className="flex-1">
-                                    <div className="text-xs text-muted-foreground mb-1">Comment</div>
-                                    <div className="text-sm text-foreground">{item.itemDetail?.comment || item.comment}</div>
-                                  </div>
+                          </div>
+                          {/* Item Comment */}
+                          {(item.itemDetail?.comment || item.comment) && (
+                            <div className="mt-3 p-3 bg-muted/50 dark:bg-muted/30 rounded-md border border-border">
+                              <div className="flex items-start gap-2">
+                                <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+                                <div className="flex-1">
+                                  <div className="text-xs text-muted-foreground mb-1">Comment</div>
+                                  <div className="text-sm text-foreground">{item.itemDetail?.comment || item.comment}</div>
                                 </div>
                               </div>
-                            )}
-                          </div>
+                            </div>
+                          )}
                         </div>
                       </Card>
                     ))}
@@ -997,7 +1063,7 @@ export default function GrnDetailPage() {
             </div>
             <div className="p-4">
               <div className="text-xs text-primary mb-2">
-                BU: {existingGRN?.businessUnit || selectedPOs[0]?.business_unit || 'Grand Hotel Singapore'}
+                BU: {existingGRN?.businessUnit || selectedPOs[0]?.businessUnit || 'Grand Hotel Singapore'}
               </div>
               <table className="w-full text-sm">
                 <thead>
@@ -1044,7 +1110,7 @@ export default function GrnDetailPage() {
             </div>
             <div className="p-4">
               <div className="text-xs text-primary mb-2">
-                BU: {existingGRN?.businessUnit || selectedPOs[0]?.business_unit || 'Grand Hotel Singapore'}
+                BU: {existingGRN?.businessUnit || selectedPOs[0]?.businessUnit || 'Grand Hotel Singapore'}
               </div>
               <table className="w-full text-sm">
                 <thead>
@@ -1091,7 +1157,7 @@ export default function GrnDetailPage() {
             </div>
             <div className="p-4">
               <div className="text-xs text-primary mb-2">
-                BU: {existingGRN?.businessUnit || selectedPOs[0]?.business_unit || 'Grand Hotel Singapore'}
+                BU: {existingGRN?.businessUnit || selectedPOs[0]?.businessUnit || 'Grand Hotel Singapore'}
               </div>
               <table className="w-full text-sm">
                 <thead>
