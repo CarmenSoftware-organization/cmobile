@@ -1178,7 +1178,7 @@ export default function PrApprovalDetailPage() {
                       <th className="px-2 py-1 text-left text-gray-900 dark:text-gray-100">Vendor</th>
                       <th className="px-2 py-1 text-left text-gray-900 dark:text-gray-100">Ordered Qty</th>
                       <th className="px-2 py-1 text-left text-gray-900 dark:text-gray-100">Status</th>
-                      <th className="px-2 py-1 text-left text-gray-900 dark:text-gray-100">Due Date</th>
+                      <th className="px-2 py-1 text-left text-gray-900 dark:text-gray-100">Delivery Date</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1187,7 +1187,7 @@ export default function PrApprovalDetailPage() {
                         <td className="px-2 py-1 text-gray-900 dark:text-gray-100">{po.po_number}</td>
                         <td className="px-2 py-1 text-gray-900 dark:text-gray-100">{po.vendor}</td>
                         <td className="px-2 py-1 text-gray-900 dark:text-gray-100">{po.ordered_qty} {onOrderItem.inventoryUnit}</td>
-                        <td className="px-2 py-1 text-gray-900 dark:text-gray-100">{po.status}</td>
+                        <td className="px-2 py-1 text-gray-900 dark:text-gray-100">{po.status === 'In Progress' ? 'Partial' : po.status === 'Completed' ? 'Sent' : po.status}</td>
                         <td className="px-2 py-1 text-gray-900 dark:text-gray-100">{po.due_date}</td>
                       </tr>
                     ))}
