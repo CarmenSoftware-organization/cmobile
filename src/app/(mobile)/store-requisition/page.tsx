@@ -3,22 +3,19 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { useState } from "react";
 import { ShoppingCart, Calendar, Package, Filter, X } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+// Import store requisition workflow configuration
+import {
+  getCurrentSRWorkflowStage,
+  storeRequisitionWorkflowConfig,
+  type StoreRequisition
+} from '@/lib/workflow';
 
-const statusColors: Record<string, string> = {
-  Draft: "bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600",
-  "In-progress": "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-600",
-  Complete: "bg-green-100 text-green-800 border-green-300 dark:bg-green-950 dark:text-green-300 dark:border-green-600",
-  Issued: "bg-green-200 text-green-900 border-green-400 dark:bg-green-900 dark:text-green-200 dark:border-green-700",
-  Rejected: "bg-red-100 text-red-800 border-red-300 dark:bg-red-950 dark:text-red-300 dark:border-red-600",
-  Cancel: "bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-600",
-};
-
-const storeRequisitions = [
+const storeRequisitions: StoreRequisition[] = [
   {
     id: 1,
     number: "SR-001",
     status: "Draft",
+    workflowStage: 0,
     department: "F&B",
     date: "2024-06-01",
     itemCount: 5,
@@ -34,6 +31,7 @@ const storeRequisitions = [
     id: 2,
     number: "SR-002",
     status: "In-progress",
+    workflowStage: 1,
     department: "Housekeeping",
     date: "2024-06-02",
     itemCount: 3,
@@ -43,12 +41,14 @@ const storeRequisitions = [
     jobCode: "JC-2025-002",
     marketSegment: "Rooms",
     event: null,
-    notes: "Monthly supply replenishment"
+    notes: "Monthly supply replenishment",
+    lastAction: "Submitted for Department Review (2024-06-02)"
   },
   {
     id: 3,
     number: "SR-003",
-    status: "Complete",
+    status: "Issued",
+    workflowStage: 4,
     department: "Engineering",
     date: "2024-06-03",
     itemCount: 4,
@@ -58,12 +58,14 @@ const storeRequisitions = [
     jobCode: "JC-2025-003",
     marketSegment: "General",
     event: null,
-    notes: "Maintenance supplies"
+    notes: "Maintenance supplies",
+    lastAction: "Items issued to Engineering department (2024-06-03)"
   },
   {
     id: 4,
     number: "SR-004",
-    status: "Complete",
+    status: "In-progress",
+    workflowStage: 3,
     department: "F&B",
     date: "2024-06-04",
     itemCount: 2,
@@ -73,12 +75,14 @@ const storeRequisitions = [
     jobCode: "JC-2025-001",
     marketSegment: "F&B",
     event: "Corporate Retreat",
-    notes: "For executive dinner service"
+    notes: "For executive dinner service",
+    lastAction: "Approved by Store Manager, ready for issue (2024-06-04)"
   },
   {
     id: 5,
     number: "SR-005",
     status: "Issued",
+    workflowStage: 4,
     department: "Front Office",
     date: "2024-06-05",
     itemCount: 6,
@@ -94,6 +98,7 @@ const storeRequisitions = [
     id: 6,
     number: "SR-006",
     status: "In-progress",
+    workflowStage: 2,
     department: "Housekeeping",
     date: "2024-06-06",
     itemCount: 3,
@@ -103,12 +108,14 @@ const storeRequisitions = [
     jobCode: "JC-2025-003",
     marketSegment: "Rooms",
     event: null,
-    notes: "Regular room supplies"
+    notes: "Regular room supplies",
+    lastAction: "Approved by Department, submitted for Store Review (2024-06-06)"
   },
   {
     id: 7,
     number: "SR-007",
     status: "Rejected",
+    workflowStage: -1,
     department: "F&B",
     date: "2024-06-07",
     itemCount: 1,
@@ -118,12 +125,14 @@ const storeRequisitions = [
     jobCode: "JC-2025-001",
     marketSegment: "F&B",
     event: "Wedding",
-    notes: "Premium champagne for wedding reception"
+    notes: "Premium champagne for wedding reception",
+    lastAction: "Rejected by Department - Budget exceeded (2024-06-07)"
   },
   {
     id: 8,
     number: "SR-008",
     status: "Cancel",
+    workflowStage: -2,
     department: "Engineering",
     date: "2024-06-08",
     itemCount: 2,
@@ -133,12 +142,14 @@ const storeRequisitions = [
     jobCode: "JC-2025-002",
     marketSegment: "General",
     event: null,
-    notes: "Need additional approval for power tools"
+    notes: "Need additional approval for power tools",
+    lastAction: "Cancelled by Requestor (2024-06-08)"
   },
   {
     id: 9,
     number: "SR-009",
     status: "Draft",
+    workflowStage: 0,
     department: "Front Office",
     date: "2024-06-09",
     itemCount: 4,
@@ -153,7 +164,8 @@ const storeRequisitions = [
   {
     id: 10,
     number: "SR-010",
-    status: "Complete",
+    status: "Issued",
+    workflowStage: 4,
     department: "Housekeeping",
     date: "2024-06-10",
     itemCount: 2,
@@ -163,7 +175,8 @@ const storeRequisitions = [
     jobCode: "JC-2025-001",
     marketSegment: "Rooms",
     event: null,
-    notes: "Replacement cleaning equipment"
+    notes: "Replacement cleaning equipment",
+    lastAction: "Items issued to Housekeeping department (2024-06-10)"
   },
 ];
 
@@ -369,6 +382,32 @@ export default function StoreRequisitionPage() {
           <div className="text-center text-muted-foreground py-12">No Store Requisitions found.</div>
         ) : (
           filtered.map((sr) => {
+            const currentSRStageId = getCurrentSRWorkflowStage(sr);
+            
+            // Enhanced stage display logic: show previous, current, and next stages
+            let stagesToDisplayInStepper: Array<{id: number; label: string}> = [];
+            if (currentSRStageId >= 0 && currentSRStageId < storeRequisitionWorkflowConfig.stages.length) {
+              // For normal workflow stages (0-4), show previous, current, next
+              const previousStage = currentSRStageId - 1;
+              const nextStage = currentSRStageId + 1;
+              
+              stagesToDisplayInStepper = storeRequisitionWorkflowConfig.stages.filter(stage => {
+                // Always include current stage
+                if (stage.id === currentSRStageId) return true;
+                // Include previous stage if it exists and is >= 0
+                if (stage.id === previousStage && previousStage >= 0) return true;
+                // Include next stage if it exists and is <= 4 (max normal stage)
+                if (stage.id === nextStage && nextStage <= 4) return true;
+                return false;
+              }).sort((a, b) => a.id - b.id); // Ensure proper order
+            } else if (currentSRStageId < 0) {
+              // For terminal stages (rejected/cancelled), show the last normal stage they were in
+              const lastNormalStage = Math.max(0, Math.min(4, Math.abs(currentSRStageId) - 1));
+              stagesToDisplayInStepper = storeRequisitionWorkflowConfig.stages.filter(stage => 
+                stage.id >= Math.max(0, lastNormalStage - 1) && stage.id <= Math.min(4, lastNormalStage + 1)
+              ).sort((a, b) => a.id - b.id);
+            }
+
             return (
               <Link key={sr.id} href={`/store-requisition/${sr.id}`}>
                 <Card className="p-3 flex flex-col gap-1 mb-2 cursor-pointer active:scale-[0.98] transition-transform bg-card dark:bg-card">
@@ -377,10 +416,55 @@ export default function StoreRequisitionPage() {
                       <span className="font-bold text-base">{sr.number}</span>
                       <span className="text-sm text-muted-foreground">{sr.business_unit}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge className={`border text-xs ${statusColors[sr.status] || "bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600"}`}>{sr.status}</Badge>
-                    </div>
                   </div>
+                  
+                  {stagesToDisplayInStepper.length > 0 && (
+                    <div className="flex items-center gap-1 mb-2">
+                      <div className="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 rounded-lg px-2 py-1">
+                        {stagesToDisplayInStepper.map((step, displayIdx) => {
+                          const isActive = step.id === currentSRStageId;
+                          const isDone = step.id < currentSRStageId;
+                          const isNext = step.id > currentSRStageId;
+                          
+                          return (
+                            <div key={step.id} className="flex items-center">
+                              <div className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold border-2 ${
+                                isActive 
+                                  ? "bg-blue-600 dark:bg-blue-500 text-white border-blue-600 dark:border-blue-500" 
+                                  : isDone 
+                                    ? "bg-green-500 dark:bg-green-600 text-white border-green-500 dark:border-green-600" 
+                                    : isNext
+                                      ? "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-500"
+                                      : "bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-500"
+                              }`}>
+                                {step.id + 1} 
+                              </div>
+                              <span className={`ml-1 text-xs ${
+                                isActive 
+                                  ? "font-semibold text-blue-700 dark:text-blue-400" 
+                                  : isDone 
+                                    ? "text-green-700 dark:text-green-400" 
+                                    : isNext
+                                      ? "text-gray-600 dark:text-gray-300"
+                                      : "text-gray-400 dark:text-gray-500"
+                              }`}>
+                                {step.label}
+                              </span>
+                              {displayIdx < stagesToDisplayInStepper.length - 1 && (
+                                <div className={`w-4 h-0.5 mx-2 ${
+                                  step.id < currentSRStageId 
+                                    ? "bg-green-400 dark:bg-green-500" 
+                                    : step.id === currentSRStageId
+                                      ? "bg-blue-400 dark:bg-blue-500"
+                                      : "bg-gray-300 dark:bg-gray-600"
+                                }`} />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs mb-1">
                     <div className="flex items-center gap-1 text-muted-foreground">
                       <ShoppingCart size={12} />
@@ -421,6 +505,15 @@ export default function StoreRequisitionPage() {
                           {sr.event}
                         </span>
                       )}
+                    </div>
+                  )}
+
+                  {/* Show Last Action for any SR that has one */}
+                  {sr.lastAction && (
+                    <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded">
+                      <div className="text-xs text-gray-700 dark:text-gray-300">
+                        <span className="font-medium">Last Action:</span> {sr.lastAction}
+                      </div>
                     </div>
                   )}
                 </Card>

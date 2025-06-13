@@ -2,8 +2,8 @@
 # Comprehensive Product Requirements Document (PRD)
 
 ## Document Information
-- Version: 2.2
-- Date: January 2025 (Updated with PR Approval page enhancements, workflow status clarifications, and current app state)
+- Version: 2.3
+- Date: January 2025 (Updated with critical PR approval workflow logic fix, page enhancements, workflow status clarifications, and current app state)
 - Product: Carmen Software Supply Chain Mobile App
 - Target Industry: Hotels and Hospitality
 - Document Type: Product Requirements Document (PRD)
@@ -70,6 +70,44 @@ A mobile-first tool that brings real-time, compliant, auditable supply chain man
   - **Item Status** (individual items within PRs): Pending, Approved, Review, Rejected
 - **Business Unit Standardization**: Grand Hotel Singapore, Business Hotel Jakarta, Boutique Hotel Bangkok
 - **Workflow Stage Definitions**: Draft (0), HOD Review (1), Finance Review (2), Vendor Allocation (3), Approved (4), Rejected (-1), Cancelled (-3)
+
+#### Critical PR Approval Workflow Logic Fix (January 2025)
+- **Issue Resolved**: Fixed partial approval logic that incorrectly enabled submit button when pending items existed
+- **Technical Fix**: Moved pending items check to higher priority in `determineWorkflowAction()` function
+- **Before**: Approving one item while others were pending would show "Partial Approval" and enable submit button
+- **After**: Submit button remains disabled until ALL items are reviewed (no pending items remain)
+- **Impact**: Prevents accidental submissions of incomplete PR reviews, enforces complete review requirement
+- **Implementation**: Priority logic now checks for pending items before checking for partial approvals
+- **User Experience**: Clear visual feedback with "Review Required" status when pending items exist
+
+#### Multi-Currency PR Support Implementation (January 2025)
+- **Feature**: Complete multi-currency support for Purchase Requisitions (PRs) showing both document currency and base currency throughout the approval workflow.
+- **Technical Implementation**:
+  - **Enhanced PR Interface**: Added `currency`, `exchangeRate`, `baseCurrency`, `baseValue` fields
+  - **Enhanced Item Interface**: Added `currency`, `baseCurrencyPrice`, `baseCurrencyTotal` fields
+  - **Vendor Price Interface**: Added `currency` field for vendor-specific pricing
+- **Currency Display Logic**:
+  - **PR List View**: Shows document currency with base currency conversion indicator
+  - **PR Detail Header**: Shows both document value and base currency value with exchange rate
+  - **Item Details**: Displays unit price and total price in both currencies
+  - **Item Modal**: Shows comprehensive currency breakdown in summary calculations
+  - **Vendor Comparison**: Shows currency for each vendor price
+- **Sample Data Integration**:
+  - **Singapore (SGD)**: Exchange rate 0.74 to USD base
+  - **Indonesia (IDR)**: Exchange rate 0.000067 to USD base  
+  - **Thailand (THB)**: Exchange rate 0.029 to USD base
+  - **USA (USD)**: Exchange rate 1.0 (base currency)
+- **UI/UX Features**:
+  - Document currency displayed prominently with currency symbol
+  - Base currency shown as secondary information with "≈" indicator
+  - Exchange rates displayed for transparency
+  - Consistent currency formatting across all views
+  - Currency context preserved in vendor price comparisons
+- **Business Benefits**:
+  - **Multi-Property Support**: Each hotel can operate in local currency
+  - **Approval Transparency**: Approvers see both local and base currency values
+  - **Financial Compliance**: Consistent base currency reporting
+  - **User Experience**: Natural currency display for each business unit
 
 #### Current App State and Navigation
 - **App Running Environment**: Development server on port 3002 (port 3000 in use)
@@ -1574,11 +1612,23 @@ flowchart TD
 - "Completed" → Stage 4, "Converted" → Stage 4, "Rejected" → Stage -1, "Cancelled" → Stage -3
 
 **Workflow Decision Engine:**
-The system determines PR progression using priority-based logic:
+The system determines PR progression using priority-based logic with enhanced partial approval prevention:
+
 1. **All Rejected Priority (Highest)**: If ALL items rejected → PR status becomes "Rejected"
-2. **Any Review Priority (High)**: If ANY item marked for "Review" → PR returns to previous stage
-3. **Any Pending Priority (Medium)**: If ANY item still "Pending" → Submission blocked until all reviewed
-4. **Any Approved Priority (Low)**: If ANY item approved (and no higher priorities) → PR progresses to next stage
+2. **Any Review Priority (High)**: If ANY item marked for "Review" → PR returns to previous stage  
+3. **Any Pending Priority (Medium-High)**: If ANY item still "Pending" → Submission blocked until all reviewed
+   - **Critical Fix Applied**: Pending check now properly prevents partial approval scenarios
+   - Submit button disabled and shows "Review Required" when pending items exist
+   - Prevents accidental submissions when only some items are approved
+4. **Full Approval Priority (Medium)**: If ALL items approved (no pending/review) → Full PR approval
+5. **Partial Approval Priority (Low)**: If ANY items approved AND no pending/review items → Partial PR approval with approved items only
+
+**Submit Button Behavior:**
+- **Disabled (Gray)**: When ANY items are pending - "Review Required"
+- **Enabled (Green)**: When ALL items approved - "Approve PR (X items)"  
+- **Enabled (Blue)**: When mixed approved/rejected but no pending - "Partial Approval (X items)"
+- **Enabled (Red)**: When ALL items rejected - "Reject PR (X items)"
+- **Enabled (Orange)**: When ANY items marked for review - "Return for Review"
 
 #### 8.2.2 Business Unit and Role Configuration
 

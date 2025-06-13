@@ -44,7 +44,7 @@ type Item = {
   onHandData?: Array<{ name: string; qty_available: number; min_qty: number; max_qty: number; last_counted: string; }>;
   onOrderData?: Array<{ po_number: string; vendor: string; ordered_qty: number; status: string; due_date: string; }>;
   requestLocations?: Array<{ location: string; quantity: number; priority: string; notes?: string; }>;
-  vendorPrices: Array<{vendor: string; price: number}>;
+  vendorPrices: Array<{vendor: string; price: number; currency?: string}>;
   selectedVendor: string;
   businessDimensions?: {
     jobCode: string;
@@ -55,6 +55,10 @@ type Item = {
   approvedQuantity: string;
   approvedUnit: string;
   isEdited?: boolean;
+  // Currency support
+  currency: string;
+  baseCurrencyPrice?: number;
+  baseCurrencyTotal?: number;
 };
 
 const statusColor: Record<ItemStatus, string> = {
@@ -140,7 +144,7 @@ export default function PrApprovalDetailPage() {
         { location: 'Banquet Kitchen', quantity: 3, priority: 'Medium', notes: 'For special events' },
         { location: 'Café Counter', quantity: 1, priority: 'Low', notes: 'Backup supply' },
       ],
-      vendorPrices: [{vendor: 'Vendor A', price: 24.99}, {vendor: 'Vendor B', price: 23.50}],
+      vendorPrices: [{vendor: 'Vendor A', price: 24.99, currency: 'SGD'}, {vendor: 'Vendor B', price: 23.50, currency: 'SGD'}],
       selectedVendor: 'Vendor A',
       businessDimensions: {
         jobCode: "JC-2025-001",
@@ -148,7 +152,10 @@ export default function PrApprovalDetailPage() {
         event: "ANNUAL_GALA"
       },
       approvedQuantity: "10",
-      approvedUnit: "kg"
+      approvedUnit: "kg",
+      currency: "SGD",
+      baseCurrencyPrice: 18.49,
+      baseCurrencyTotal: 184.90
     },
     {
       id: 2,
@@ -177,7 +184,7 @@ export default function PrApprovalDetailPage() {
         { location: 'VIP Lounge', quantity: 3, priority: 'High', notes: 'Premium tea service for VIP guests' },
         { location: 'Executive Floor', quantity: 2, priority: 'Medium', notes: 'Guest room minibar restocking' },
       ],
-      vendorPrices: [{vendor: 'Vendor C', price: 24.99}, {vendor: 'Vendor D', price: 23.50}],
+      vendorPrices: [{vendor: 'Vendor C', price: 24.99, currency: 'SGD'}, {vendor: 'Vendor D', price: 23.50, currency: 'SGD'}],
       selectedVendor: 'Vendor C',
       businessDimensions: {
         jobCode: "JC-2025-002",
@@ -185,7 +192,10 @@ export default function PrApprovalDetailPage() {
         event: "REGULAR_OPS"
       },
       approvedQuantity: "5",
-      approvedUnit: "box"
+      approvedUnit: "box",
+      currency: "SGD",
+      baseCurrencyPrice: 13.69,
+      baseCurrencyTotal: 68.45
     },
     {
       id: 3,
@@ -215,7 +225,7 @@ export default function PrApprovalDetailPage() {
         { location: 'Banquet Service', quantity: 2, priority: 'Medium', notes: 'For coffee stations at events' },
         { location: 'Room Service', quantity: 1, priority: 'Low', notes: 'Guest requests for in-room coffee' },
       ],
-      vendorPrices: [{vendor: 'Vendor E', price: 22.99}, {vendor: 'Vendor F', price: 21.50}],
+      vendorPrices: [{vendor: 'Vendor E', price: 22.99, currency: 'SGD'}, {vendor: 'Vendor F', price: 21.50, currency: 'SGD'}],
       selectedVendor: 'Vendor E',
       businessDimensions: {
         jobCode: "JC-2025-003",
@@ -223,7 +233,10 @@ export default function PrApprovalDetailPage() {
         event: "CORP_RETREAT"
       },
       approvedQuantity: "8",
-      approvedUnit: "kg"
+      approvedUnit: "kg",
+      currency: "SGD",
+      baseCurrencyPrice: 9.44,
+      baseCurrencyTotal: 75.48
     },
     {
       id: 4,
@@ -252,7 +265,7 @@ export default function PrApprovalDetailPage() {
         { location: 'Main Café', quantity: 1, priority: 'High', notes: 'Replacement for broken equipment' },
         { location: 'Conference Room Service', quantity: 1, priority: 'Medium', notes: 'Mobile coffee station backup' },
       ],
-      vendorPrices: [{vendor: 'Vendor G', price: 19.99}, {vendor: 'Vendor H', price: 18.50}],
+      vendorPrices: [{vendor: 'Vendor G', price: 19.99, currency: 'SGD'}, {vendor: 'Vendor H', price: 18.50, currency: 'SGD'}],
       selectedVendor: 'Vendor G',
       businessDimensions: {
         jobCode: "JC-2025-004",
@@ -260,7 +273,10 @@ export default function PrApprovalDetailPage() {
         event: "CONFERENCE"
       },
       approvedQuantity: "2",
-      approvedUnit: "unit"
+      approvedUnit: "unit",
+      currency: "SGD",
+      baseCurrencyPrice: 33.30,
+      baseCurrencyTotal: 66.60
     }
   ]);
 
@@ -271,44 +287,42 @@ export default function PrApprovalDetailPage() {
     }
   }, [itemsState, originalItemsState.length]);
 
-  // Mock PR header data
+  // Mock PR header data - matches PR-2001 from the list
   const mockPR = {
-    id: 123,
-    number: "PR-2025-00123",
-    status: "Converted" as ItemStatus,
-    workflowStage: 4, // Completed and converted to PO
-    requestor: "Michelle Tan",
+    id: 1,
+    number: "PR-2001",
+    status: "In-progress" as ItemStatus,
+    workflowStage: 1, // HOD Review stage
+    requestor: "Alice Lee",
     department: "F&B",
-    date: "2025-05-20",
-    value: "$1,200.00",
+    date: "2024-06-01",
+    value: "S$1,200.00",
     business_unit: "Grand Hotel Singapore",
-    role: "Finance", // Last approval stage
+    role: "HOD", // Stage 1 requires HOD approval
     createdBy: "user-requestor",
-    currentApprover: "user-finance",
+    currentApprover: "user-hod",
+    lastAction: "Submitted for HOD Review (2024-06-01)",
+    prType: "General",
+    currency: "SGD",
+    exchangeRate: 0.74,
+    baseCurrency: "USD",
+    baseValue: "$888.00",
     history: [
       {
         stage: 0,
         status: "Draft",
-        user: "Charlie Staff",
+        user: "Alice Lee",
         role: "Requestor", 
-        date: "2025-05-18",
+        date: "2024-05-30",
         action: "Created"
       },
       {
         stage: 1,
         status: "In-progress",
-        user: "Alice Manager",
-        role: "HOD",
-        date: "2025-05-20",
+        user: "System",
+        role: "System",
+        date: "2024-06-01",
         action: "Submitted for HOD Review"
-      },
-      {
-        stage: 4,
-        status: "Converted",
-        user: "Finance Team",
-        role: "Finance",
-        date: "2025-05-22",
-        action: "Approved and Converted to PO-2025-456"
       }
     ]
   };
@@ -362,17 +376,22 @@ export default function PrApprovalDetailPage() {
       return `RETURN_FOR_REVIEW`;
     }
     
+    // Any items still pending - not ready for submission (MUST CHECK BEFORE PARTIAL APPROVAL)
+    if (pendingCount > 0) {
+      return `NOT_READY`;
+    }
+    
     // All remaining items are approved (no pending, no review) - full approval
     if (approvedCount > 0 && pendingCount === 0 && reviewCount === 0) {
       return `APPROVE_PR`;
     }
     
-    // Mixed status or all pending - partial/pending approval
+    // Mixed status (approved + rejected, but no pending/review) - partial approval
     if (approvedCount > 0) {
       return `PARTIAL_APPROVAL`;
     }
     
-    // All items still pending - not ready for submission
+    // Fallback - not ready for submission
     return `NOT_READY`;
   };
 
@@ -691,7 +710,15 @@ export default function PrApprovalDetailPage() {
             </div>
             <div className="flex flex-row justify-between gap-2 mt-1 text-xs text-gray-600 dark:text-gray-400">
               <div><span className="font-medium">Date:</span> {mockPR.date}</div>
-              <div><span className="font-medium">Value:</span> {mockPR.value}</div>
+                              <div className="space-y-1">
+                  <div><span className="font-medium">Document Value:</span> {mockPR.value} ({mockPR.currency})</div>
+                  {mockPR.currency !== mockPR.baseCurrency && (
+                    <div className="text-sm text-muted-foreground">
+                      <span className="font-medium">Base Currency:</span> {mockPR.baseValue} ({mockPR.baseCurrency})
+                      <span className="ml-2 text-xs">Rate: {mockPR.exchangeRate.toFixed(4)}</span>
+                    </div>
+                  )}
+                </div>
             </div>
             <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between text-xs">
@@ -782,11 +809,21 @@ export default function PrApprovalDetailPage() {
                 <div className="grid grid-cols-2 gap-4 mt-3">
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Unit Price:</p>
-                                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">${item.unitPrice.toFixed(2)}</p>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">${item.unitPrice.toFixed(2)} {item.currency}</p>
+                      {item.baseCurrencyPrice && (
+                        <p className="text-xs text-muted-foreground">≈ ${item.baseCurrencyPrice.toFixed(2)} USD</p>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Price:</p>
-                                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">${item.totalPrice.toFixed(2)}</p>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">${item.totalPrice.toFixed(2)} {item.currency}</p>
+                      {item.baseCurrencyTotal && (
+                        <p className="text-xs text-muted-foreground">≈ ${item.baseCurrencyTotal.toFixed(2)} USD</p>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -909,16 +946,22 @@ export default function PrApprovalDetailPage() {
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Summary</p>
                 <Card className="p-3 bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600">
                   <div className="grid grid-cols-2 gap-2 text-sm mb-1 text-gray-900 dark:text-gray-100">
-                    <div>Item Subtotal</div>
-                    <div className="text-right font-medium">${(Number(selectedItem.requested) * 20).toFixed(2)}</div>
+                    <div>Item Subtotal ({selectedItem.currency})</div>
+                    <div className="text-right font-medium">${selectedItem.totalPrice.toFixed(2)}</div>
                     <div>Discount (5%)</div>
-                    <div className="text-right font-medium">-${(Number(selectedItem.requested) * 20 * 0.05).toFixed(2)}</div>
+                    <div className="text-right font-medium">-${(selectedItem.totalPrice * 0.05).toFixed(2)}</div>
                     <div>Net Total</div>
-                    <div className="text-right font-medium">${(Number(selectedItem.requested) * 20 * 0.95).toFixed(2)}</div>
+                    <div className="text-right font-medium">${(selectedItem.totalPrice * 0.95).toFixed(2)}</div>
                     <div>Tax (7%)</div>
-                    <div className="text-right font-medium">+${(Number(selectedItem.requested) * 20 * 0.95 * 0.07).toFixed(2)}</div>
-                    <div className="font-semibold">Total</div>
-                    <div className="text-right font-semibold">${(Number(selectedItem.requested) * 20 * 0.95 * 1.07).toFixed(2)}</div>
+                    <div className="text-right font-medium">+${(selectedItem.totalPrice * 0.95 * 0.07).toFixed(2)}</div>
+                    <div className="font-semibold">Total ({selectedItem.currency})</div>
+                    <div className="text-right font-semibold">${(selectedItem.totalPrice * 0.95 * 1.07).toFixed(2)}</div>
+                    {selectedItem.baseCurrencyTotal && (
+                      <>
+                        <div className="text-xs text-muted-foreground">Base Currency Total</div>
+                        <div className="text-right text-xs text-muted-foreground">${(selectedItem.baseCurrencyTotal * 0.95 * 1.07).toFixed(2)} USD</div>
+                      </>
+                    )}
                   </div>
                 </Card>
               </div>
@@ -1239,7 +1282,9 @@ export default function PrApprovalDetailPage() {
                     {priceCompareItem.vendorPrices.map((vp, idx) => (
                       <tr key={idx} className="border-b border-gray-200 dark:border-gray-600">
                         <td className="px-2 py-1 text-gray-900 dark:text-gray-100">{vp.vendor}</td>
-                        <td className="px-2 py-1 text-gray-900 dark:text-gray-100">${vp.price.toFixed(2)}</td>
+                        <td className="px-2 py-1 text-gray-900 dark:text-gray-100">
+                          ${vp.price.toFixed(2)} {vp.currency || priceCompareItem.currency}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

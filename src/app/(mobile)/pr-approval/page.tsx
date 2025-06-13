@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 
@@ -9,7 +9,6 @@ import { Eye, EyeOff, Filter } from "lucide-react";
 // Import shared workflow configuration
 import {
   getCurrentWorkflowStage,
-  getCurrentStep,
   canUserActOnPR,
   canUserViewPR,
   mockUsers,
@@ -25,11 +24,15 @@ const prApprovals: PR[] = [
     requestor: "Alice Lee",
     department: "F&B",
     date: "2024-06-01",
-    value: "$1,200.00",
+    value: "S$1,200.00",
     business_unit: "Grand Hotel Singapore",
     role: "HOD", // Stage 1 requires HOD approval
     lastAction: "Submitted for HOD Review (2024-06-01)",
-    prType: "General"
+    prType: "General",
+    currency: "SGD",
+    exchangeRate: 0.74,
+    baseCurrency: "USD",
+    baseValue: "$888.00"
   },
   {
     id: 2,
@@ -39,10 +42,14 @@ const prApprovals: PR[] = [
     requestor: "Bob Tan",
     department: "Housekeeping",
     date: "2024-06-02",
-    value: "$800.00",
+    value: "Rp 12,000,000",
     business_unit: "Business Hotel Jakarta",
     role: "Purchasing", // Stage 4 completed by Purchasing (last approver)
-    prType: "Market List"
+    prType: "Market List",
+    currency: "IDR",
+    exchangeRate: 0.000067,
+    baseCurrency: "USD",
+    baseValue: "$800.00"
   },
   {
     id: 3,
@@ -52,11 +59,15 @@ const prApprovals: PR[] = [
     requestor: "Charlie Lim",
     department: "Engineering",
     date: "2024-06-03",
-    value: "$600.00",
+    value: "฿21,000.00",
     business_unit: "Boutique Hotel Bangkok",
     role: "Finance", // Stage 2 requires Finance approval
     lastAction: "Approved by HOD, submitted for Finance Review (2024-06-03)",
-    prType: "General"
+    prType: "General",
+    currency: "THB",
+    exchangeRate: 0.029,
+    baseCurrency: "USD",
+    baseValue: "$600.00"
   },
   {
     id: 9,
@@ -66,10 +77,14 @@ const prApprovals: PR[] = [
     requestor: "Ivy Chen",
     department: "IT",
     date: "2024-06-09",
-    value: "$2,500.00",
+    value: "S$3,375.00",
     business_unit: "Grand Hotel Singapore",
     role: "Purchasing", // Stage 3 requires Purchasing approval
-    prType: "Market List"
+    prType: "Market List",
+    currency: "SGD",
+    exchangeRate: 0.74,
+    baseCurrency: "USD",
+    baseValue: "$2,500.00"
   },
   {
     id: 4,
@@ -82,7 +97,11 @@ const prApprovals: PR[] = [
     value: "$900.00",
     business_unit: "Grand Hotel Singapore",
     role: "HOD", // Last role that handled before cancellation
-    prType: "General"
+    prType: "General",
+    currency: "USD",
+    exchangeRate: 1.0,
+    baseCurrency: "USD",
+    baseValue: "$900.00"
   },
   {
     id: 5,
@@ -92,10 +111,14 @@ const prApprovals: PR[] = [
     requestor: "Eddie Goh",
     department: "Front Office",
     date: "2024-06-05",
-    value: "$450.00",
+    value: "Rp 6,750,000",
     business_unit: "Business Hotel Jakarta",
     role: "Requestor", // Stage 0 is owned by Requestor
-    prType: "Market List"
+    prType: "Market List",
+    currency: "IDR",
+    exchangeRate: 0.000067,
+    baseCurrency: "USD",
+    baseValue: "$450.00"
   },
   {
     id: 6,
@@ -105,10 +128,14 @@ const prApprovals: PR[] = [
     requestor: "Fiona Chua",
     department: "Housekeeping",
     date: "2024-06-06",
-    value: "$1,100.00",
+    value: "฿38,500.00",
     business_unit: "Boutique Hotel Bangkok",
     role: "Finance", // Rejected by Finance
-    prType: "General"
+    prType: "General",
+    currency: "THB",
+    exchangeRate: 0.029,
+    baseCurrency: "USD",
+    baseValue: "$1,100.00"
   },
   {
     id: 7,
@@ -118,10 +145,14 @@ const prApprovals: PR[] = [
     requestor: "George Tan",
     department: "F&B",
     date: "2024-06-07",
-    value: "$2,000.00",
+    value: "S$2,700.00",
     business_unit: "Grand Hotel Singapore",
     role: "HOD", // Stage 1 requires HOD approval
-    prType: "Market List"
+    prType: "Market List",
+    currency: "SGD",
+    exchangeRate: 0.74,
+    baseCurrency: "USD",
+    baseValue: "$2,000.00"
   },
   {
     id: 8,
@@ -131,10 +162,14 @@ const prApprovals: PR[] = [
     requestor: "Helen Lee",
     department: "Engineering",
     date: "2024-06-08",
-    value: "$700.00",
+    value: "Rp 10,500,000",
     business_unit: "Business Hotel Jakarta",
     role: "Purchasing", // Stage 4 completed by Purchasing (last approver)
-    prType: "General"
+    prType: "General",
+    currency: "IDR",
+    exchangeRate: 0.000067,
+    baseCurrency: "USD",
+    baseValue: "$700.00"
   },
   // Additional PRs for better testing coverage
   {
@@ -149,7 +184,11 @@ const prApprovals: PR[] = [
     business_unit: "Grand Hotel Singapore", 
     role: "HOD", // Returned to HOD for changes
     lastAction: "Returned by Finance for additional information (2024-06-10)",
-    prType: "General"
+    prType: "General",
+    currency: "USD",
+    exchangeRate: 1.0,
+    baseCurrency: "USD",
+    baseValue: "$350.00"
   },
   {
     id: 11,
@@ -159,10 +198,14 @@ const prApprovals: PR[] = [
     requestor: "Sarah Wilson",
     department: "Housekeeping",
     date: "2024-06-11",
-    value: "$750.00",
+    value: "Rp 11,250,000",
     business_unit: "Business Hotel Jakarta",
     role: "Finance", // Stage 2 requires Finance approval
-    prType: "Market List"
+    prType: "Market List",
+    currency: "IDR",
+    exchangeRate: 0.000067,
+    baseCurrency: "USD",
+    baseValue: "$750.00"
   },
   {
     id: 12,
@@ -172,10 +215,14 @@ const prApprovals: PR[] = [
     requestor: "Mike Johnson",
     department: "Maintenance",
     date: "2024-06-12",
-    value: "$950.00",
+    value: "฿33,250.00",
     business_unit: "Boutique Hotel Bangkok",
     role: "Purchasing", // Completed by Purchasing
-    prType: "General"
+    prType: "General",
+    currency: "THB",
+    exchangeRate: 0.029,
+    baseCurrency: "USD",
+    baseValue: "$950.00"
   }
 ];
 
@@ -203,7 +250,7 @@ export default function PrApprovalListPage() {
   const [stageFilter, setStageFilter] = useState<number | null>(null);
   const [prTypeFilter, setPrTypeFilter] = useState<string | null>(null);
   const [sort, setSort] = useState("date-desc");
-  const [showOnlyActionable, setShowOnlyActionable] = useState(false);
+  const [showOnlyActionable, setShowOnlyActionable] = useState(true);
   const [showUserPanel, setShowUserPanel] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
 
@@ -211,6 +258,18 @@ export default function PrApprovalListPage() {
 
   const [currentUserId, setCurrentUserId] = useState("user-hod");
   const currentUser = mockUsers.find(user => user.id === currentUserId) || mockUsers[0];
+
+  // Set default stage filter based on user role after page load and when user changes
+  useEffect(() => {
+    if (currentUser && currentUser.role) {
+      if (currentUser.role === "HOD") setStageFilter(1);
+      else if (currentUser.role === "Finance") setStageFilter(2);
+      else if (currentUser.role === "Purchasing") setStageFilter(3);
+      else setStageFilter(0); // Requestor gets Draft stage (0)
+      
+      setShowOnlyActionable(true); // Default to actionable items
+    }
+  }, [currentUser, currentUserId]); // Trigger when user changes
 
   // Count active filters
   const getActiveFilterCount = () => {
@@ -242,9 +301,8 @@ export default function PrApprovalListPage() {
                        pr.status === "Draft" && 
                        getCurrentWorkflowStage(pr) === 0;
     } else if (showOnlyActionable) {
-      matchesWorkflow = (canUserAct && hasBusinessUnitAccess) || 
-                       (getCurrentWorkflowStage(pr) >= 3 && hasBusinessUnitAccess) ||
-                       (getCurrentWorkflowStage(pr) < 0 && hasBusinessUnitAccess); 
+      // Only show PRs that the user can actually act on (approve/reject)
+      matchesWorkflow = canUserAct && hasBusinessUnitAccess;
     } else {
       matchesWorkflow = canUserView && hasBusinessUnitAccess;
     }
@@ -405,7 +463,7 @@ export default function PrApprovalListPage() {
                     if (newUser.role === "HOD") setStageFilter(1);
                     else if (newUser.role === "Finance") setStageFilter(2);
                     else if (newUser.role === "Purchasing") setStageFilter(3);
-                    else setStageFilter(null);
+                    else setStageFilter(0); // Requestor gets Draft stage (0)
                     
                     // Show only actionable items
                     setShowOnlyActionable(true);
@@ -468,15 +526,29 @@ export default function PrApprovalListPage() {
           filtered.map((pr) => {
             const isActionable = canUserActOnPR(pr, currentUser.role);
             const currentPrStageId = getCurrentWorkflowStage(pr);
-            const currentStepForComparison = getCurrentStep(pr);
 
+            // Enhanced stage display logic: show previous, current, and next stages
             let stagesToDisplayInStepper: WorkflowStageDisplay[] = [];
             if (currentPrStageId >= 0 && currentPrStageId < fullWorkflowStagesForDisplay.length) {
+              // For normal workflow stages (0-4), show previous, current, next
+              const previousStage = currentPrStageId - 1;
+              const nextStage = currentPrStageId + 1;
+              
               stagesToDisplayInStepper = fullWorkflowStagesForDisplay.filter(stage => {
-                return stage.id === currentPrStageId || 
-                       stage.id === currentPrStageId - 1 || 
-                       stage.id === currentPrStageId + 1;
-              });
+                // Always include current stage
+                if (stage.id === currentPrStageId) return true;
+                // Include previous stage if it exists and is >= 0
+                if (stage.id === previousStage && previousStage >= 0) return true;
+                // Include next stage if it exists and is <= 4 (max normal stage)
+                if (stage.id === nextStage && nextStage <= 4) return true;
+                return false;
+              }).sort((a, b) => a.id - b.id); // Ensure proper order
+            } else if (currentPrStageId < 0) {
+              // For terminal stages (rejected/cancelled), show the last normal stage they were in
+              const lastNormalStage = Math.max(0, Math.min(4, Math.abs(currentPrStageId) - 1));
+              stagesToDisplayInStepper = fullWorkflowStagesForDisplay.filter(stage => 
+                stage.id >= Math.max(0, lastNormalStage - 1) && stage.id <= Math.min(4, lastNormalStage + 1)
+              ).sort((a, b) => a.id - b.id);
             }
 
             return (
@@ -495,23 +567,50 @@ export default function PrApprovalListPage() {
                   </div>
                   
                   {stagesToDisplayInStepper.length > 0 && (
-                    <div className="flex items-center gap-1 mb-1">
-                      {stagesToDisplayInStepper.map((step, displayIdx) => {
-                        const isActive = step.id === currentStepForComparison;
-                        const isDone = step.id < currentStepForComparison;
-                        
-                        return (
-                          <div key={step.id} className="flex items-center">
-                            <div className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold border-2 ${isActive ? "bg-blue-600 dark:bg-blue-500 text-white border-blue-600 dark:border-blue-500" : isDone ? "bg-green-500 dark:bg-green-600 text-white border-green-500 dark:border-green-600" : "bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-500"}`}>
-                              {step.id + 1} 
+                    <div className="flex items-center gap-1 mb-2">
+                      <div className="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 rounded-lg px-2 py-1">
+                        {stagesToDisplayInStepper.map((step, displayIdx) => {
+                          const isActive = step.id === currentPrStageId;
+                          const isDone = step.id < currentPrStageId;
+                          const isNext = step.id > currentPrStageId;
+                          
+                          return (
+                            <div key={step.id} className="flex items-center">
+                              <div className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold border-2 ${
+                                isActive 
+                                  ? "bg-blue-600 dark:bg-blue-500 text-white border-blue-600 dark:border-blue-500" 
+                                  : isDone 
+                                    ? "bg-green-500 dark:bg-green-600 text-white border-green-500 dark:border-green-600" 
+                                    : isNext
+                                      ? "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-500"
+                                      : "bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-500"
+                              }`}>
+                                {step.id + 1} 
+                              </div>
+                              <span className={`ml-1 text-xs ${
+                                isActive 
+                                  ? "font-semibold text-blue-700 dark:text-blue-400" 
+                                  : isDone 
+                                    ? "text-green-700 dark:text-green-400" 
+                                    : isNext
+                                      ? "text-gray-600 dark:text-gray-300"
+                                      : "text-gray-400 dark:text-gray-500"
+                              }`}>
+                                {step.label}
+                              </span>
+                              {displayIdx < stagesToDisplayInStepper.length - 1 && (
+                                <div className={`w-4 h-0.5 mx-2 ${
+                                  step.id < currentPrStageId 
+                                    ? "bg-green-400 dark:bg-green-500" 
+                                    : step.id === currentPrStageId
+                                      ? "bg-blue-400 dark:bg-blue-500"
+                                      : "bg-gray-300 dark:bg-gray-600"
+                                }`} />
+                              )}
                             </div>
-                            <span className={`ml-1 mr-2 text-xs ${isActive ? "font-semibold text-blue-700 dark:text-blue-400" : isDone ? "text-green-700 dark:text-green-400" : "text-gray-400 dark:text-gray-500"}`}>
-                              {step.label}
-                            </span>
-                            {displayIdx < stagesToDisplayInStepper.length - 1 && <span className="w-4 h-0.5 bg-gray-300 dark:bg-gray-600 mx-1" />}
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
 
@@ -519,13 +618,20 @@ export default function PrApprovalListPage() {
                     <span className="text-gray-600 dark:text-gray-400">{pr.requestor}</span>
                     <span className="text-gray-600 dark:text-gray-400">{pr.department}</span>
                     <span className="text-gray-600 dark:text-gray-400">{pr.date}</span>
-                    <span className="text-gray-600 dark:text-gray-400">{pr.value}</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-gray-900 dark:text-gray-100 font-medium">{pr.value}</span>
+                      {pr.currency !== pr.baseCurrency && (
+                        <span className="text-xs bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 px-1 rounded">
+                          ≈ {pr.baseValue}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Show Last Action only for Return for Review */}
-                  {pr.lastAction && pr.lastAction.toLowerCase().includes('returned for review') && (
-                    <div className="mt-2 p-2 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded">
-                      <div className="text-xs text-orange-700 dark:text-orange-300">
+                  {/* Show Last Action for any PR that has one */}
+                  {pr.lastAction && (
+                    <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded">
+                      <div className="text-xs text-gray-700 dark:text-gray-300">
                         <span className="font-medium">Last Action:</span> {pr.lastAction}
                       </div>
                     </div>

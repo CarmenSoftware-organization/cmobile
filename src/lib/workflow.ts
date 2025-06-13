@@ -119,6 +119,11 @@ export interface PR {
   role: string; // Required role for current stage
   lastAction?: string; // Optional last action for return for review
   prType?: string; // PR Type: Market List or General
+  // Multi-currency support
+  currency: string; // Document currency (e.g., "USD", "SGD", "THB")
+  exchangeRate: number; // Exchange rate to base currency
+  baseCurrency: string; // Base currency (e.g., "USD")
+  baseValue: string; // Value in base currency
 }
 
 // Helper Functions for Workflow Management
@@ -214,4 +219,68 @@ export const mockUsers: User[] = [
     businessUnits: ["Grand Hotel Singapore", "Business Hotel Jakarta", "Boutique Hotel Bangkok"],
     department: "Procurement"
   }
-]; 
+];
+
+// Store Requisition Workflow Configuration
+export const storeRequisitionWorkflowConfig = {
+  stages: [
+    { id: 0, name: "Draft", label: "Draft", roles: ["Requestor"] },
+    { id: 1, name: "Department Review", label: "Dept Review", roles: ["HOD"] },
+    { id: 2, name: "Store Review", label: "Store Review", roles: ["Store Manager"] },
+    { id: 3, name: "Approved", label: "Approved", roles: [] },
+    { id: 4, name: "Issued", label: "Issued", roles: [] },
+    // Terminal stages
+    { id: -1, name: "Rejected", label: "Rejected", roles: [] },
+    { id: -2, name: "Cancel", label: "Cancel", roles: [] }
+  ] as WorkflowStage[]
+};
+
+// Store Requisition Status to Stage Mapping
+export const srStatusToStage: Record<string, number> = {
+  "Draft": 0,
+  "In-progress": 1, // Default to Department Review when in progress
+  "Complete": 4, // Map "Complete" to "Issued" stage (final state)
+  "Issued": 4,
+  "Rejected": -1,
+  "Cancel": -2
+};
+
+// Store Requisition Interface
+export interface StoreRequisition {
+  id: number;
+  number: string;
+  status: string;
+  workflowStage?: number; // Optional workflow stage
+  department: string;
+  date: string;
+  itemCount: number;
+  business_unit: string;
+  requester: string;
+  items: string[];
+  jobCode: string;
+  marketSegment: string;
+  event: string | null;
+  notes: string;
+  lastAction?: string;
+}
+
+// Helper Functions for Store Requisition Workflow
+export function getCurrentSRWorkflowStage(sr: StoreRequisition | string): number {
+  if (typeof sr === 'string') {
+    return srStatusToStage[sr] ?? 0;
+  }
+  return sr.workflowStage ?? srStatusToStage[sr.status] ?? 0;
+}
+
+export function getSRWorkflowStageLabel(stage: number): string {
+  const stageConfig = storeRequisitionWorkflowConfig.stages.find(s => s.id === stage);
+  return stageConfig?.label || "Unknown";
+}
+
+export function getSRWorkflowSteps() {
+  return storeRequisitionWorkflowConfig.stages.filter(stage => stage.id >= 0).map(stage => ({
+    key: stage.name,
+    label: stage.label,
+    id: stage.id
+  }));
+} 
