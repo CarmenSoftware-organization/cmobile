@@ -3,8 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import { BusinessUnitLabel } from "@/components/ui/business-unit-label";
-import { Filter, Eye, EyeOff } from "lucide-react";
+
+import { Eye, EyeOff } from "lucide-react";
 
 // Import shared workflow configuration
 import {
@@ -12,8 +12,6 @@ import {
   getCurrentStep,
   canUserActOnPR,
   canUserViewPR,
-  getWorkflowStageLabel,
-  statusColors,
   mockUsers,
   type PR
 } from '@/lib/workflow';
@@ -30,11 +28,12 @@ const prApprovals: PR[] = [
     value: "$1,200.00",
     business_unit: "Grand Hotel Singapore",
     role: "HOD",
+    lastAction: "Returned for Review by Finance Team (2024-06-02)"
   },
   {
     id: 2,
     number: "PR-2002",
-    status: "Completed",
+    status: "Converted",
     workflowStage: 4,
     requestor: "Bob Tan",
     department: "Housekeeping",
@@ -54,6 +53,7 @@ const prApprovals: PR[] = [
     value: "$600.00",
     business_unit: "Boutique Hotel Bangkok",
     role: "Finance",
+    lastAction: "Returned for Review by HOD (2024-06-04)"
   },
   {
     id: 9,
@@ -70,8 +70,8 @@ const prApprovals: PR[] = [
   {
     id: 4,
     number: "PR-2004",
-    status: "On Hold",
-    workflowStage: -2,
+    status: "Cancelled",
+    workflowStage: -3,
     requestor: "Diana Ong",
     department: "F&B",
     date: "2024-06-04",
@@ -118,8 +118,8 @@ const prApprovals: PR[] = [
   {
     id: 8,
     number: "PR-2008",
-    status: "Cancelled",
-    workflowStage: -3,
+    status: "Converted",
+    workflowStage: 4,
     requestor: "Helen Lee",
     department: "Engineering",
     date: "2024-06-08",
@@ -129,9 +129,6 @@ const prApprovals: PR[] = [
   },
 ];
 
-const allStatuses = [
-  ...Array.from(new Set(prApprovals.map(pr => pr.status)))
-];
 const allBUs = [
   ...Array.from(new Set(prApprovals.map(pr => pr.business_unit)))
 ];
@@ -150,36 +147,14 @@ const fullWorkflowStagesForDisplay: WorkflowStageDisplay[] = [
   { id: 4, name: "Approved", label: "Approved" }
 ];
 
-function getPresetRange(preset: string) {
-  const today = new Date();
-  let from: string | undefined, to: string | undefined;
-  if (preset === "Today") {
-    from = to = today.toISOString().slice(0, 10);
-  } else if (preset === "This Week") {
-    const first = new Date(today);
-    first.setDate(today.getDate() - today.getDay());
-    from = first.toISOString().slice(0, 10);
-    to = today.toISOString().slice(0, 10);
-  } else if (preset === "This Month") {
-    const first = new Date(today.getFullYear(), today.getMonth(), 1);
-    from = first.toISOString().slice(0, 10);
-    to = today.toISOString().slice(0, 10);
-  }
-  return { from: from || "", to: to || "" };
-}
-
 export default function PrApprovalListPage() {
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [buFilter, setBuFilter] = useState<string | null>(null);
-  const [workflowStageFilter, setWorkflowStageFilter] = useState<number | null>(null);
-  const [datePreset, setDatePreset] = useState("");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
   const [sort, setSort] = useState("date-desc");
   const [showOnlyActionable, setShowOnlyActionable] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
   const [showUserPanel, setShowUserPanel] = useState(true);
+
+
 
   const [currentUserId, setCurrentUserId] = useState("user-hod");
   const currentUser = mockUsers.find(user => user.id === currentUserId) || mockUsers[0];
@@ -189,12 +164,7 @@ export default function PrApprovalListPage() {
       pr.number.toLowerCase().includes(search.toLowerCase()) ||
       pr.requestor.toLowerCase().includes(search.toLowerCase());
     
-    const matchesStatus = !statusFilter || pr.status === statusFilter;
     const matchesBU = !buFilter || pr.business_unit === buFilter;
-    const matchesWorkflowStage = workflowStageFilter === null || pr.workflowStage === workflowStageFilter;
-    let matchesDate = true;
-    if (dateFrom) matchesDate = pr.date >= dateFrom;
-    if (matchesDate && dateTo) matchesDate = pr.date <= dateTo;
 
     let matchesWorkflow = true;
     const hasBusinessUnitAccess = currentUser.businessUnits.includes(pr.business_unit);
@@ -209,7 +179,7 @@ export default function PrApprovalListPage() {
       matchesWorkflow = canUserView && hasBusinessUnitAccess;
     }
 
-    return matchesSearch && matchesStatus && matchesBU && matchesWorkflowStage && matchesDate && matchesWorkflow;
+    return matchesSearch && matchesBU && matchesWorkflow;
   });
   if (sort === "date-desc") filtered = filtered.sort((a, b) => b.date.localeCompare(a.date));
   if (sort === "date-asc") filtered = filtered.sort((a, b) => a.date.localeCompare(b.date));
@@ -220,6 +190,20 @@ export default function PrApprovalListPage() {
     <div className="p-0">
       {/* Sticky search/filter bar */}
       <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 p-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+        {/* Business Unit Selector */}
+        <div className="mb-3">
+          <select
+            className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            value={buFilter || ""}
+            onChange={e => setBuFilter(e.target.value === "" ? null : e.target.value)}
+          >
+            <option value="">All Business Units</option>
+            {allBUs.map(bu => (
+              <option key={bu} value={bu}>{bu}</option>
+            ))}
+          </select>
+        </div>
+        
         <div className="flex gap-2 mb-2 items-center">
           <input
             className="flex-1 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
@@ -227,92 +211,19 @@ export default function PrApprovalListPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+          <select
+            className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+            value={sort}
+            onChange={e => setSort(e.target.value)}
           >
-            <Filter className="w-4 h-4" />
-          </button>
-        </div>
-        {showFilters && (
-          <div className="flex flex-wrap gap-2 mb-2 items-center">
-            <div className="flex gap-1 items-center">
-              <span className="text-xs text-gray-600 dark:text-gray-400">BU:</span>
-              <select
-                className="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                value={buFilter || ""}
-                onChange={e => setBuFilter(e.target.value === "" ? null : e.target.value)}
-              >
-                <option value="">All</option>
-                {allBUs.map(bu => (
-                  <option key={bu} value={bu}>{bu}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex gap-1 items-center">
-              <span className="text-xs text-gray-600 dark:text-gray-400">Status:</span>
-              <select
-                className="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                value={statusFilter || ""}
-                onChange={e => setStatusFilter(e.target.value === "" ? null : e.target.value)}
-              >
-                <option value="">All</option>
-                {allStatuses.map(status => (
-                  <option key={status} value={status}>{status}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex gap-1 items-center">
-              <span className="text-xs text-gray-600 dark:text-gray-400">Stage:</span>
-              <select
-                className="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                value={workflowStageFilter === null ? "" : workflowStageFilter.toString()}
-                onChange={e => setWorkflowStageFilter(e.target.value === "" ? null : parseInt(e.target.value))}
-              >
-                <option value="">All</option>
-                {fullWorkflowStagesForDisplay.map(stage => (
-                  <option key={stage.id} value={stage.id}>{stage.label}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex gap-1 items-center">
-              <span className="text-xs text-gray-600 dark:text-gray-400">Date:</span>
-              <select
-                className="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                value={datePreset}
-                onChange={e => {
-                  setDatePreset(e.target.value);
-                  if (e.target.value) {
-                    const { from, to } = getPresetRange(e.target.value);
-                    setDateFrom(from);
-                    setDateTo(to);
-                  } else {
-                    setDateFrom("");
-                    setDateTo("");
-                  }
-                }}
-              >
-                <option value="">All</option>
-                <option value="Today">Today</option>
-                <option value="This Week">This Week</option>
-                <option value="This Month">This Month</option>
-              </select>
-            </div>
-            <div className="flex gap-1 items-center">
-              <span className="text-xs text-gray-600 dark:text-gray-400">Sort:</span>
-              <select
-                className="text-xs border border-gray-300 dark:border-gray-600 rounded px-1 py-0.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                value={sort}
-                onChange={e => setSort(e.target.value)}
-              >
-                <option value="date-desc">Date ↓</option>
+                            <option value="date-desc">Date ↓</option>
                 <option value="date-asc">Date ↑</option>
-                <option value="status">Status</option>
-                <option value="bu">BU</option>
-              </select>
-            </div>
-          </div>
-        )}
+                          <option value="status">Stage</option>
+            <option value="bu">Business Unit</option>
+          </select>
+        </div>
+
+
       </div>
       <div className="p-4 space-y-3">
         {/* User Context Info with Toggle */}
@@ -413,11 +324,7 @@ export default function PrApprovalListPage() {
                         </span>
                       )}
                     </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className={`rounded px-2 py-0.5 text-xs font-medium ${statusColors[pr.status] || "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"}`}>
-                        {pr.status}
-                      </span>
-                    </div>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">{pr.business_unit}</span>
                   </div>
                   
                   {stagesToDisplayInStepper.length > 0 && (
@@ -447,12 +354,16 @@ export default function PrApprovalListPage() {
                     <span className="text-gray-600 dark:text-gray-400">{pr.date}</span>
                     <span className="text-gray-600 dark:text-gray-400">{pr.value}</span>
                   </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <BusinessUnitLabel assignedBusinessUnits={[{ id: 1, name: pr.business_unit }]} />
-                    <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                      <span>Stage: {getWorkflowStageLabel(pr.workflowStage)}</span>
+
+                  {/* Show Last Action only for Return for Review */}
+                  {pr.lastAction && pr.lastAction.toLowerCase().includes('returned for review') && (
+                    <div className="mt-2 p-2 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded">
+                      <div className="text-xs text-orange-700 dark:text-orange-300">
+                        <span className="font-medium">Last Action:</span> {pr.lastAction}
+                      </div>
                     </div>
-                  </div>
+                  )}
+
                 </Card>
               </Link>
             );

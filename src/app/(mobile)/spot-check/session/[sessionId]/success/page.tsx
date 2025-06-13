@@ -205,13 +205,22 @@ export default function SpotCheckSuccessPage() {
             
             <button
               className="py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
-              onClick={() => {
-                // Mock share functionality
+              onClick={async () => {
+                // Mock share functionality with proper error handling
                 if (navigator.share) {
-                  navigator.share({
-                    title: `Spot Check Results - Session ${sessionId}`,
-                    text: `Completed spot check with ${sessionResults.accuracyRate}% accuracy. ${sessionResults.varianceItems} variances found.`,
-                  });
+                  try {
+                    await navigator.share({
+                      title: `Spot Check Results - Session ${sessionId}`,
+                      text: `Completed spot check with ${sessionResults.accuracyRate}% accuracy. ${sessionResults.varianceItems} variances found.`,
+                    });
+                  } catch (error) {
+                    // Handle share cancellation or other errors silently
+                    // User likely cancelled the share dialog, which is normal behavior
+                    console.log('Share was cancelled or failed:', error);
+                  }
+                } else {
+                  // Fallback for browsers that don't support Web Share API
+                  alert('Sharing not supported on this device');
                 }
               }}
             >

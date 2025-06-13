@@ -4,7 +4,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { mockPhysicalCountItems } from "@/mock/physicalCountData";
 import { FileAttachments, FileAttachment } from "@/components/ui/file-attachments";
-import { Save, Pause, CheckCircle, Clock, MapPin, Calendar, Plus, Minus, ChevronDown, Calculator, X, Trash2 } from "lucide-react";
+import { Save, Pause, CheckCircle, Clock, MapPin, Calendar, Plus, Minus, Calculator, X, Trash2, ChevronLeft, Search, Filter, ScanLine } from "lucide-react";
 
 interface PhysicalCountItem {
   sku: string;
@@ -93,6 +93,23 @@ export default function PhysicalCountEntryPage() {
   const [activeCalculatorItemId, setActiveCalculatorItemId] = useState<string | null>(null);
   const [numberPadValue, setNumberPadValue] = useState("");
 
+  // Scan dialog state
+  const [showScanDialog, setShowScanDialog] = useState(false);
+  const [scanResult, setScanResult] = useState<string>("");
+  const [scannedItem, setScannedItem] = useState<PhysicalCountItem | null>(null);
+
+  // Filter panel state
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [filters, setFilters] = useState({
+    status: "all", // all, counted, uncounted
+    category: "all", // all, food, beverages, supplies, equipment
+    subCategory: "all", // all, dairy, meat, produce, etc.
+    itemGroup: "all", // all, perishable, non-perishable, etc.
+    unit: "all", // all, bottle, kg, case, etc.
+    hasNotes: false,
+    hasAttachments: false
+  });
+
   // Calculate progress
   const countedItems = items.filter(item => item.counted).length;
   const totalItems = items.length;
@@ -124,27 +141,6 @@ export default function PhysicalCountEntryPage() {
       )
     );
     setHasUnsavedChanges(true);
-  };
-
-  const handleUnitChange = (idx: number, unit: string) => {
-    setItems((prev) =>
-      prev.map((item, i) => 
-        i === idx ? { ...item, unit } : item
-      )
-    );
-    setHasUnsavedChanges(true);
-  };
-
-  const incrementCount = (idx: number) => {
-    const item = items[idx];
-    const newValue = (item.actual || 0) + 1;
-    handleCountChange(idx, newValue);
-  };
-
-  const decrementCount = (idx: number) => {
-    const item = items[idx];
-    const newValue = Math.max(0, (item.actual || 0) - 1);
-    handleCountChange(idx, newValue);
   };
 
   const handleNotesChange = (idx: number, value: string) => {
@@ -308,6 +304,89 @@ export default function PhysicalCountEntryPage() {
     closeCalculatorDialog();
   };
 
+  // Scan functions
+  const openScanDialog = () => {
+    setShowScanDialog(true);
+    setScanResult("");
+    setScannedItem(null);
+  };
+
+  const closeScanDialog = () => {
+    setShowScanDialog(false);
+    setScanResult("");
+    setScannedItem(null);
+  };
+
+  const handleScanResult = (scannedCode: string) => {
+    setScanResult(scannedCode);
+    // Find item by SKU or name
+    const foundItem = items.find(item => 
+      item.sku.toLowerCase() === scannedCode.toLowerCase() ||
+      item.name.toLowerCase().includes(scannedCode.toLowerCase())
+    );
+    setScannedItem(foundItem || null);
+  };
+
+  const confirmScanCount = (count: number) => {
+    if (scannedItem) {
+      const itemIndex = items.findIndex(item => item.sku === scannedItem.sku);
+      if (itemIndex !== -1) {
+        handleCountChange(itemIndex, count);
+        closeScanDialog();
+      }
+    }
+  };
+
+  // Filter functions
+  const openFilterPanel = () => {
+    setShowFilterPanel(true);
+  };
+
+  const closeFilterPanel = () => {
+    setShowFilterPanel(false);
+  };
+
+  const updateFilter = (key: string, value: string | boolean) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      status: "all",
+      category: "all",
+      subCategory: "all",
+      itemGroup: "all", 
+      unit: "all",
+      hasNotes: false,
+      hasAttachments: false
+    });
+  };
+
+  // Apply filters to items
+  const filteredItems = items.filter(item => {
+    if (filters.status !== "all") {
+      if (filters.status === "counted" && !item.counted) return false;
+      if (filters.status === "uncounted" && item.counted) return false;
+    }
+    
+    if (filters.unit !== "all" && item.unit !== filters.unit) return false;
+    
+    if (filters.hasNotes && !item.notes.trim()) return false;
+    
+    if (filters.hasAttachments && item.attachments.length === 0) return false;
+    
+    return true;
+  });
+
+  // Count active filters
+  const activeFilterCount = Object.entries(filters).filter(([key, value]) => {
+    if (key === 'hasNotes' || key === 'hasAttachments') return value;
+    return value !== "all";
+  }).length;
+
   const handleSave = async (showFeedback = true) => {
     setIsSaving(true);
     
@@ -342,11 +421,25 @@ export default function PhysicalCountEntryPage() {
       {/* Enhanced Header */}
       <header className="p-4 border-b bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
         <div className="flex justify-between items-start mb-2">
-          <div>
-            <h1 className="text-xl font-bold text-blue-700 dark:text-blue-400">Physical Count Entry</h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400">{sessionInfo.name}</p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.back()}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              title="Go back"
+            >
+              <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </button>
+            <div>
+              <h1 className="text-xl font-bold text-blue-700 dark:text-blue-400">Physical Count Entry</h1>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{sessionInfo.name}</p>
+            </div>
           </div>
           <div className="text-right">
+            <div className="flex items-center justify-end gap-2 mb-1">
+              <span className="px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 rounded text-xs font-medium">
+                {sessionInfo.status}
+              </span>
+            </div>
             <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
               {countedItems} / {totalItems}
             </div>
@@ -383,31 +476,57 @@ export default function PhysicalCountEntryPage() {
         </div>
 
         {/* Status Indicators */}
-        <div className="flex gap-2">
-          {hasUnsavedChanges && (
+        {hasUnsavedChanges && (
+          <div className="flex gap-2">
             <span className="px-2 py-1 bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300 rounded text-xs font-medium">
               Unsaved Changes
             </span>
-          )}
-          <span className="px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 rounded text-xs font-medium">
-            {sessionInfo.status}
-          </span>
-        </div>
+          </div>
+        )}
       </header>
 
       <main className="flex-1 p-4 flex flex-col gap-4">
+        {/* Search and Filter Bar */}
+        <div className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-lg p-3 shadow">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search items..."
+              className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <button
+            className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            title="Scan item"
+            onClick={openScanDialog}
+          >
+            <ScanLine className="w-5 h-5" />
+          </button>
+          <button
+            className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors relative"
+            title="Filter items"
+            onClick={openFilterPanel}
+          >
+            <Filter className="w-5 h-5" />
+            {activeFilterCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+        </div>
+
         {/* Items List */}
         <div className="flex flex-col gap-4">
-          {items.map((item, idx) => (
+          {filteredItems.map((item, idx) => (
             <div key={item.sku} className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 flex flex-col gap-3">
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <div className="font-semibold text-gray-900 dark:text-gray-100">{item.name}</div>
                   <div className="text-sm text-gray-500 dark:text-gray-400">{item.sku}</div>
                 </div>
-                <div className="text-right">
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Unit: {item.unit}</div>
-                </div>
+
               </div>
 
               {/* Count Input */}
@@ -416,32 +535,18 @@ export default function PhysicalCountEntryPage() {
                   Actual Count:
                 </label>
                 
-                {/* Input Group with attached +/- buttons */}
-                <div className="flex border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden bg-white dark:bg-gray-700">
-                  <button
-                    className="px-3 py-2 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors border-r border-gray-300 dark:border-gray-600"
-                    onClick={() => decrementCount(idx)}
-                    type="button"
-                  >
-                    <Minus className="w-4 h-4" />
-                  </button>
+                {/* Small Input with Calculator button */}
+                <div className="flex items-center gap-2">
                   <input
                     type="number"
-                    className="px-3 py-2 w-24 bg-transparent text-gray-900 dark:text-gray-100 border-0 focus:outline-none focus:ring-0"
+                    className="px-2 py-1 w-24 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={item.actual ?? ""}
                     onChange={e => handleCountChange(idx, Number(e.target.value))}
                     min={0}
                     step="0.01"
                   />
                   <button
-                    className="px-3 py-2 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors border-l border-gray-300 dark:border-gray-600"
-                    onClick={() => incrementCount(idx)}
-                    type="button"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                  <button
-                    className="px-3 py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors border-l border-gray-300 dark:border-gray-600"
+                    className="px-2 py-1 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors"
                     onClick={() => openCalculatorDialog(idx)}
                     type="button"
                     title="Detailed entry"
@@ -450,21 +555,10 @@ export default function PhysicalCountEntryPage() {
                   </button>
                 </div>
                 
-                {/* Unit Dropdown */}
-                <div className="relative">
-                  <select
-                    className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 appearance-none pr-8"
-                    value={item.unit}
-                    onChange={e => handleUnitChange(idx, e.target.value)}
-                  >
-                    {(item.availableUnits || ["pcs", "kg", "g", "L", "mL", "box", "case", "bottle", "pack"]).map(unit => (
-                      <option key={unit} value={unit}>
-                        {unit}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-                </div>
+                {/* Unit Display */}
+                <span className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {item.unit}
+                </span>
                 
                 {item.counted && (
                   <CheckCircle className="w-5 h-5 text-green-500 ml-auto" />
@@ -561,64 +655,64 @@ export default function PhysicalCountEntryPage() {
       {/* Calculator Dialog */}
       {showCalculatorDialog && (
         <div 
-          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2"
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               closeCalculatorDialog();
             }
           }}
         >
-          <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md max-h-[85vh] flex flex-col">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md max-h-[85vh] flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-750 rounded-t-xl">
               <div>
-                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">
                   Calculator
                 </h3>
                 {currentCalculatorItemIndex !== null && (
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">
                     {items[currentCalculatorItemIndex].name}
                   </p>
                 )}
               </div>
               <button
                 onClick={closeCalculatorDialog}
-                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
               </button>
             </div>
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-3 space-y-3">
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
               {calculatorItems.map((calcItem) => (
-                <div key={calcItem.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-2">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="flex border border-gray-300 dark:border-gray-600 rounded overflow-hidden">
+                <div key={calcItem.id} className="border border-gray-200 dark:border-gray-600 rounded-xl p-4 bg-gray-50 dark:bg-gray-750">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-[3] flex items-center border border-gray-300 dark:border-gray-500 rounded-lg overflow-hidden bg-white dark:bg-gray-700">
                       <button
                         onClick={() => updateCalculatorItem(calcItem.id, 'quantity', Math.max(0, calcItem.quantity - 1))}
-                        className="px-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors border-r border-gray-300 dark:border-gray-600"
+                        className="px-3 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors text-blue-600 dark:text-blue-400"
                       >
-                        <Minus className="w-3 h-3" />
+                        <Minus className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => openNumberPad(calcItem.id, calcItem.quantity)}
-                        className="px-3 py-1 min-w-[60px] text-center bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm"
+                        className="flex-1 py-2 text-center bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-600 text-base font-medium border-x border-gray-300 dark:border-gray-500"
                       >
                         {calcItem.quantity}
                       </button>
                       <button
                         onClick={() => updateCalculatorItem(calcItem.id, 'quantity', calcItem.quantity + 1)}
-                        className="px-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors border-l border-gray-300 dark:border-gray-600"
+                        className="px-3 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors text-blue-600 dark:text-blue-400"
                       >
-                        <Plus className="w-3 h-3" />
+                        <Plus className="w-4 h-4" />
                       </button>
                     </div>
 
                     <select
                       value={calcItem.unit}
                       onChange={(e) => updateCalculatorItem(calcItem.id, 'unit', e.target.value)}
-                      className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+                      className="flex-1 border border-gray-300 dark:border-gray-500 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       {Object.keys(UNIT_CONVERSIONS).map(unit => (
                         <option key={unit} value={unit}>{unit}</option>
@@ -628,11 +722,16 @@ export default function PhysicalCountEntryPage() {
                     {calculatorItems.length > 1 && (
                       <button
                         onClick={() => removeCalculatorItem(calcItem.id)}
-                        className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded ml-auto"
+                        className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
                       >
-                        <Trash2 className="w-3 h-3" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     )}
+                  </div>
+                  
+                  {/* Show converted value */}
+                  <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-right">
+                    = {(calcItem.quantity * (UNIT_CONVERSIONS[calcItem.unit] || 1)).toFixed(2)}g
                   </div>
                 </div>
               ))}
@@ -640,36 +739,34 @@ export default function PhysicalCountEntryPage() {
               {/* Add Item Button */}
               <button
                 onClick={addCalculatorItem}
-                className="w-full py-2 border border-dashed border-gray-300 dark:border-gray-600 rounded text-gray-600 dark:text-gray-400 hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center justify-center gap-1 text-sm"
+                className="w-full py-3 border-2 border-dashed border-blue-300 dark:border-blue-600 rounded-xl text-blue-600 dark:text-blue-400 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-center gap-2 text-sm font-medium"
               >
                 <Plus className="w-4 h-4" />
-                Add Unit
+                Add Another Unit
               </button>
             </div>
 
-
-
             {/* Footer with Base Total */}
-            <div className="border-t border-gray-200 dark:border-gray-700 p-3 space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-gray-600 dark:text-gray-400">Total (grams):</span>
-                <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+            <div className="border-t border-gray-200 dark:border-gray-700 p-5 bg-gray-50 dark:bg-gray-750 rounded-b-xl">
+              <div className="flex justify-between items-center mb-4 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-700">
+                <span className="text-sm font-medium text-blue-900 dark:text-blue-100">Total Weight:</span>
+                <span className="text-lg font-bold text-blue-900 dark:text-blue-100">
                   {baseTotalGrams.toFixed(2)}g
                 </span>
               </div>
               
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <button
                   onClick={closeCalculatorDialog}
-                  className="flex-1 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded font-semibold text-sm"
+                  className="flex-1 py-3 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-semibold text-sm hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={confirmCalculatorTotal}
-                  className="flex-1 py-2 bg-blue-600 text-white rounded font-semibold text-sm"
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm transition-colors shadow-sm"
                 >
-                  Select Total
+                  Use This Total
                 </button>
               </div>
             </div>
@@ -756,6 +853,307 @@ export default function PhysicalCountEntryPage() {
           </div>
         </div>
       )}
+
+      {/* Scan Dialog */}
+      {showScanDialog && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              closeScanDialog();
+            }
+          }}
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Scan Item
+              </h3>
+              <button
+                onClick={closeScanDialog}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-4 space-y-4">
+              {/* Mock Scanner Interface */}
+              <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center">
+                <ScanLine className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                <p className="text-gray-600 dark:text-gray-400 mb-4">Point camera at barcode or QR code</p>
+                
+                {/* Mock Manual Input */}
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    placeholder="Or enter SKU manually..."
+                    value={scanResult}
+                    onChange={(e) => handleScanResult(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-center bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  />
+                  
+                  {/* Quick SKU Buttons for Testing */}
+                  <div className="flex gap-2 justify-center">
+                    <button
+                      onClick={() => handleScanResult('SKU001')}
+                      className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded text-sm"
+                    >
+                      SKU001
+                    </button>
+                    <button
+                      onClick={() => handleScanResult('SKU002')}
+                      className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded text-sm"
+                    >
+                      SKU002
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Scan Result */}
+              {scanResult && (
+                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Scan Result:</h4>
+                                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">&ldquo;{scanResult}&rdquo;</p>
+                  
+                  {scannedItem ? (
+                    <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-3">
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                        <span className="font-medium text-green-800 dark:text-green-200">Item Found!</span>
+                      </div>
+                      <div className="space-y-1 text-sm">
+                        <p className="font-medium text-gray-900 dark:text-gray-100">{scannedItem.name}</p>
+                        <p className="text-gray-600 dark:text-gray-400">{scannedItem.sku}</p>
+                        <p className="text-gray-600 dark:text-gray-400">Unit: {scannedItem.unit}</p>
+                      </div>
+                      
+                      {/* Count Input */}
+                      <div className="mt-3 space-y-2">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Enter Count:
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="0"
+                            className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                const value = Number((e.target as HTMLInputElement).value);
+                                if (value >= 0) confirmScanCount(value);
+                              }
+                            }}
+                          />
+                          <span className="text-sm text-gray-600 dark:text-gray-400">{scannedItem.unit}</span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const input = document.querySelector('input[type="number"]') as HTMLInputElement;
+                            const value = Number(input?.value || 0);
+                            if (value >= 0) confirmScanCount(value);
+                          }}
+                          className="w-full py-2 bg-green-600 text-white rounded-lg font-semibold"
+                        >
+                          Confirm Count
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-3">
+                      <div className="flex items-center gap-2">
+                        <X className="w-5 h-5 text-red-600" />
+                        <span className="font-medium text-red-800 dark:text-red-200">Item Not Found</span>
+                      </div>
+                      <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                        No item matches this SKU. Try scanning again or check the code.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+                     </div>
+         </div>
+       )}
+
+       {/* Filter Panel */}
+       {showFilterPanel && (
+         <div 
+           className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+           onClick={(e) => {
+             if (e.target === e.currentTarget) {
+               closeFilterPanel();
+             }
+           }}
+         >
+           <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md max-h-[85vh] flex flex-col">
+             {/* Header */}
+             <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                 Filter Items
+               </h3>
+               <div className="flex items-center gap-2">
+                 {activeFilterCount > 0 && (
+                   <button
+                     onClick={clearFilters}
+                     className="px-3 py-1 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                   >
+                     Clear All
+                   </button>
+                 )}
+                 <button
+                   onClick={closeFilterPanel}
+                   className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                 >
+                   <X className="w-5 h-5" />
+                 </button>
+               </div>
+             </div>
+
+             {/* Content */}
+             <div className="flex-1 overflow-y-auto p-4 space-y-6">
+               {/* Status Filter */}
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                   Count Status
+                 </label>
+                 <div className="space-y-2">
+                   {[
+                     { value: "all", label: "All Items" },
+                     { value: "counted", label: "Counted" },
+                     { value: "uncounted", label: "Not Counted" }
+                   ].map((option) => (
+                     <label key={option.value} className="flex items-center gap-3">
+                       <input
+                         type="radio"
+                         name="status"
+                         value={option.value}
+                         checked={filters.status === option.value}
+                         onChange={(e) => updateFilter("status", e.target.value)}
+                         className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                       />
+                       <span className="text-sm text-gray-700 dark:text-gray-300">{option.label}</span>
+                     </label>
+                   ))}
+                 </div>
+               </div>
+
+               {/* Category Filter */}
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                   Category
+                 </label>
+                 <select
+                   value={filters.category}
+                   onChange={(e) => updateFilter("category", e.target.value)}
+                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                 >
+                   <option value="all">All Categories</option>
+                   <option value="food">Food & Beverages</option>
+                   <option value="supplies">Supplies</option>
+                   <option value="equipment">Equipment</option>
+                   <option value="cleaning">Cleaning</option>
+                   <option value="maintenance">Maintenance</option>
+                 </select>
+               </div>
+
+               {/* Sub Category Filter */}
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                   Sub Category
+                 </label>
+                 <select
+                   value={filters.subCategory}
+                   onChange={(e) => updateFilter("subCategory", e.target.value)}
+                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                 >
+                   <option value="all">All Sub Categories</option>
+                   <option value="dairy">Dairy</option>
+                   <option value="meat">Meat & Poultry</option>
+                   <option value="produce">Produce</option>
+                   <option value="beverages">Beverages</option>
+                   <option value="condiments">Condiments & Sauces</option>
+                   <option value="kitchen">Kitchen Supplies</option>
+                   <option value="housekeeping">Housekeeping</option>
+                 </select>
+               </div>
+
+               {/* Item Group Filter */}
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                   Item Group
+                 </label>
+                 <select
+                   value={filters.itemGroup}
+                   onChange={(e) => updateFilter("itemGroup", e.target.value)}
+                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                 >
+                   <option value="all">All Item Groups</option>
+                   <option value="perishable">Perishable</option>
+                   <option value="non-perishable">Non-Perishable</option>
+                   <option value="frozen">Frozen</option>
+                   <option value="dry-goods">Dry Goods</option>
+                   <option value="liquids">Liquids</option>
+                   <option value="disposables">Disposables</option>
+                 </select>
+               </div>
+
+
+
+               {/* Additional Filters */}
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                   Additional Filters
+                 </label>
+                 <div className="space-y-3">
+                   <label className="flex items-center gap-3">
+                     <input
+                       type="checkbox"
+                       checked={filters.hasNotes}
+                       onChange={(e) => updateFilter("hasNotes", e.target.checked)}
+                       className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                     />
+                     <span className="text-sm text-gray-700 dark:text-gray-300">Has Notes</span>
+                   </label>
+                   <label className="flex items-center gap-3">
+                     <input
+                       type="checkbox"
+                       checked={filters.hasAttachments}
+                       onChange={(e) => updateFilter("hasAttachments", e.target.checked)}
+                       className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                     />
+                     <span className="text-sm text-gray-700 dark:text-gray-300">Has Attachments</span>
+                   </label>
+                 </div>
+               </div>
+             </div>
+
+             {/* Footer */}
+             <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+               <div className="flex gap-3">
+                 <button
+                   onClick={closeFilterPanel}
+                   className="flex-1 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold"
+                 >
+                   Cancel
+                 </button>
+                 <button
+                   onClick={closeFilterPanel}
+                   className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-semibold"
+                 >
+                   Apply Filters ({filteredItems.length})
+                 </button>
+               </div>
+             </div>
+           </div>
+         </div>
+       )}
     </div>
   );
 }

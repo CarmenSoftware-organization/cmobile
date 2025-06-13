@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Search, Filter, Calendar, MapPin, DollarSign, FileText, Clock } from "lucide-react";
@@ -9,9 +9,19 @@ import { mockGRNs, type MockGRN } from "@/data/mockGRNData";
 
 export default function DraftGRNsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedBusinessUnitFromUrl = searchParams.get('bu');
+  
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedBusinessUnit, setSelectedBusinessUnit] = useState("All");
+  const [selectedBusinessUnit, setSelectedBusinessUnit] = useState(selectedBusinessUnitFromUrl || "All");
   const [showFilters, setShowFilters] = useState(false);
+
+  // Update selected business unit when URL parameter changes
+  useEffect(() => {
+    if (selectedBusinessUnitFromUrl) {
+      setSelectedBusinessUnit(selectedBusinessUnitFromUrl);
+    }
+  }, [selectedBusinessUnitFromUrl]);
 
   // Filter to show only Draft GRNs
   const draftGRNs = mockGRNs.filter(grn => grn.status === "Draft");
@@ -23,7 +33,9 @@ export default function DraftGRNsPage() {
       grn.vendorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       grn.linkedPOs.some(po => po.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    const matchesBusinessUnit = selectedBusinessUnit === "All" || grn.businessUnit === selectedBusinessUnit;
+    // If BU is passed via URL, filter by that BU; otherwise use the selected filter
+    const effectiveBusinessUnit = selectedBusinessUnitFromUrl || selectedBusinessUnit;
+    const matchesBusinessUnit = effectiveBusinessUnit === "All" || grn.businessUnit === effectiveBusinessUnit;
     
     return matchesSearch && matchesBusinessUnit;
   });
@@ -34,7 +46,8 @@ export default function DraftGRNsPage() {
   const handleGRNClick = (grn: MockGRN) => {
     // Navigate to GRN detail for editing
     const poParams = grn.linkedPOs.map(po => `po=${po.replace('PO-', '')}`).join('&');
-    router.push(`/receiving/grn-detail?${poParams}&grn=${grn.grnNumber}`);
+    const buParam = selectedBusinessUnitFromUrl ? `&bu=${encodeURIComponent(selectedBusinessUnitFromUrl)}` : '';
+    router.push(`/receiving/grn-detail?${poParams}&grn=${grn.grnNumber}${buParam}`);
   };
 
   const getStatusColor = (status: string) => {
@@ -44,15 +57,7 @@ export default function DraftGRNsPage() {
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "High": return "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300";
-      case "Medium": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300";
-      case "Low": return "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300";
-      case "Urgent": return "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300";
-      default: return "bg-gray-100 text-gray-800 dark:bg-gray-950 dark:text-gray-300";
-    }
-  };
+
 
   return (
     <div className="p-4 pb-32 space-y-4">
@@ -65,11 +70,13 @@ export default function DraftGRNsPage() {
           <div>
             <h1 className="text-xl font-bold">Draft GRNs</h1>
             <p className="text-sm text-muted-foreground">
-              Incomplete Good Receive Notes requiring attention
+              {selectedBusinessUnitFromUrl || "Incomplete Good Receive Notes requiring attention"}
             </p>
           </div>
         </div>
       </div>
+
+
 
       {/* Search and Filter */}
       <div className="space-y-3">
@@ -96,29 +103,41 @@ export default function DraftGRNsPage() {
 
         {showFilters && (
           <Card className="p-4 space-y-3">
-            <div>
-              <label className="text-sm font-medium mb-1 block">Business Unit</label>
-              <select
-                className="w-full p-2 border border-input rounded bg-background text-foreground"
-                value={selectedBusinessUnit}
-                onChange={(e) => setSelectedBusinessUnit(e.target.value)}
-              >
-                <option value="All">All Business Units</option>
-                {businessUnits.map(unit => (
-                  <option key={unit} value={unit}>{unit}</option>
-                ))}
-              </select>
-            </div>
+            {/* Only show BU filter if not pre-selected via URL */}
+            {!selectedBusinessUnitFromUrl && (
+              <div>
+                <label className="text-sm font-medium mb-1 block">Business Unit</label>
+                <select
+                  className="w-full p-2 border border-input rounded bg-background text-foreground"
+                  value={selectedBusinessUnit}
+                  onChange={(e) => setSelectedBusinessUnit(e.target.value)}
+                >
+                  <option value="All">All Business Units</option>
+                  {businessUnits.map(unit => (
+                    <option key={unit} value={unit}>{unit}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            
+            {selectedBusinessUnitFromUrl && (
+              <div className="text-sm text-muted-foreground">
+                Showing drafts for: <span className="font-medium">{selectedBusinessUnitFromUrl}</span>
+              </div>
+            )}
+            
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  setSelectedBusinessUnit("All");
+                  if (!selectedBusinessUnitFromUrl) {
+                    setSelectedBusinessUnit("All");
+                  }
                   setSearchTerm("");
                 }}
               >
-                Clear Filters
+                Clear {selectedBusinessUnitFromUrl ? 'Search' : 'Filters'}
               </Button>
             </div>
           </Card>
@@ -143,9 +162,11 @@ export default function DraftGRNsPage() {
             <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <div className="text-lg font-medium text-muted-foreground mb-2">No Draft GRNs Found</div>
             <div className="text-sm text-muted-foreground">
-              {searchTerm || selectedBusinessUnit !== "All" 
+              {searchTerm || (selectedBusinessUnit !== "All" && !selectedBusinessUnitFromUrl) 
                 ? "Try adjusting your search criteria or filters."
-                : "All GRNs have been completed. Great work!"
+                : selectedBusinessUnitFromUrl
+                  ? `No draft GRNs found for ${selectedBusinessUnitFromUrl}.`
+                  : "All GRNs have been completed. Great work!"
               }
             </div>
           </Card>
@@ -160,9 +181,6 @@ export default function DraftGRNsPage() {
                       <span className="font-semibold text-primary">{grn.grnNumber}</span>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(grn.status)}`}>
                         {grn.status}
-                      </span>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(grn.priority)}`}>
-                        {grn.priority}
                       </span>
                     </div>
                     <Button
@@ -212,9 +230,6 @@ export default function DraftGRNsPage() {
 
                   {/* Business Unit */}
                   <div className="flex items-center justify-between pt-2 border-t border-border">
-                    <div className="text-xs text-muted-foreground">
-                      <span className="font-medium">Business Unit:</span> {grn.businessUnit}
-                    </div>
                     <div className="text-xs text-muted-foreground">
                       Created by: {grn.createdBy}
                     </div>

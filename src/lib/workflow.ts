@@ -24,7 +24,6 @@ export const workflowConfig = {
     { id: 4, name: "Approved", label: "Approved", roles: [] },
     // Terminal stages
     { id: -1, name: "Rejected", label: "Rejected", roles: [] },
-    { id: -2, name: "On Hold", label: "On Hold", roles: [] },
     { id: -3, name: "Cancelled", label: "Cancelled", roles: [] }
   ] as WorkflowStage[]
 };
@@ -36,9 +35,9 @@ export const documentStatuses: Record<string, { color: string; description: stri
   "In-progress": { color: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200", description: "Document is in progress through workflow" },
   "Returned": { color: "bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200", description: "Returned for changes" },
   "Completed": { color: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200", description: "Document completed" },
+  "Converted": { color: "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200", description: "Converted to Purchase Order" },
   // Terminal statuses
   "Rejected": { color: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200", description: "Rejected" },
-  "On Hold": { color: "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200", description: "Temporarily on hold" },
   "Cancelled": { color: "bg-gray-100 dark:bg-gray-900/30 text-gray-600 dark:text-gray-400", description: "Cancelled" }
 };
 
@@ -48,9 +47,8 @@ export const stageToValidStatuses: Record<number, string[]> = {
   1: ["In-progress", "Returned"], // HOD Review stage
   2: ["In-progress", "Returned"], // Finance Review stage
   3: ["In-progress", "Returned"], // Vendor Allocation stage
-  4: ["Completed"], // Final stage
+  4: ["Completed", "Converted"], // Final stage - can be completed or converted to PO
   [-1]: ["Rejected"], // Terminal rejection
-  [-2]: ["On Hold"], // Terminal hold
   [-3]: ["Cancelled"] // Terminal cancellation
 };
 
@@ -60,8 +58,8 @@ export const statusToDefaultStage: Record<string, number> = {
   "In-progress": 1, // Default to HOD Review when in progress
   "Returned": 0, // Return to draft for changes
   "Completed": 4,
+  "Converted": 4, // Converted PRs are at final approved stage
   "Rejected": -1,
-  "On Hold": -2,
   "Cancelled": -3
 };
 
@@ -119,6 +117,7 @@ export interface PR {
   value: string;
   business_unit: string;
   role: string; // Required role for current stage
+  lastAction?: string; // Optional last action for return for review
 }
 
 // Helper Functions for Workflow Management

@@ -20,10 +20,11 @@ import {
   getCurrentWorkflowStage,
   canUserActOnPR,
   getWorkflowStageLabel,
-  mockUsers
+  mockUsers,
+  getWorkflowSteps
 } from '@/lib/workflow';
 
-type ItemStatus = 'Draft' | 'In-progress' | 'Returned' | 'Completed' | 'Rejected' | 'On Hold' | 'Cancelled';
+type ItemStatus = 'Pending' | 'Approved' | 'Review' | 'Rejected' | 'Converted';
 
 type Item = {
   id: number;
@@ -42,6 +43,7 @@ type Item = {
   totalPrice: number;
   onHandData?: Array<{ name: string; qty_available: number; min_qty: number; max_qty: number; last_counted: string; }>;
   onOrderData?: Array<{ po_number: string; vendor: string; ordered_qty: number; status: string; due_date: string; }>;
+  requestLocations?: Array<{ location: string; quantity: number; priority: string; notes?: string; }>;
   vendorPrices: Array<{vendor: string; price: number}>;
   selectedVendor: string;
   businessDimensions?: {
@@ -56,13 +58,11 @@ type Item = {
 };
 
 const statusColor: Record<ItemStatus, string> = {
-  Draft: "bg-gray-100 text-gray-800 border-gray-300",
-  "In-progress": "bg-blue-100 text-blue-800 border-blue-300",
-  Returned: "bg-orange-100 text-orange-800 border-orange-300",
-  Completed: "bg-green-100 text-green-800 border-green-300",
+  Pending: "bg-yellow-100 text-yellow-800 border-yellow-300",
+  Approved: "bg-green-100 text-green-800 border-green-300",
+  Review: "bg-blue-100 text-blue-800 border-blue-300",
   Rejected: "bg-red-100 text-red-800 border-red-300",
-  "On Hold": "bg-orange-100 text-orange-800 border-orange-300",
-  Cancelled: "bg-gray-100 text-gray-800 border-gray-300",
+  Converted: "bg-purple-100 text-purple-800 border-purple-300",
 };
 
 // Mock Business Dimensions lookup data
@@ -94,7 +94,7 @@ const businessDimensionsLookup = {
 
 export default function PrApprovalDetailPage() {
   const router = useRouter();
-  const [currentDate] = useState("May 20, 2025");
+
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [onHandItem, setOnHandItem] = useState<Item | null>(null);
   const [onOrderItem, setOnOrderItem] = useState<Item | null>(null);
@@ -104,6 +104,9 @@ export default function PrApprovalDetailPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [originalItemsState, setOriginalItemsState] = useState<Item[]>([]); // Store original state for cancel functionality
+  const [showTestPanel, setShowTestPanel] = useState(true);
+  const [reviewComment, setReviewComment] = useState("");
+  const [sendbackStep, setSendbackStep] = useState<number>(0);
 
   const [currentUserId, setCurrentUserId] = useState("user-hod");
   const currentUser = mockUsers.find(user => user.id === currentUserId) || mockUsers[0];
@@ -113,7 +116,7 @@ export default function PrApprovalDetailPage() {
       id: 1,
       name: "Premium Coffee Beans",
       sku: "SKU11111",
-      status: "In-progress" as ItemStatus,
+      status: "Pending" as ItemStatus,
       requested: 10,
       unit: "kg",
       onHand: 50,
@@ -132,6 +135,11 @@ export default function PrApprovalDetailPage() {
         { po_number: 'PO-2025-001', vendor: 'Vendor A', ordered_qty: 20, status: 'In Progress', due_date: '2025-06-15' },
         { po_number: 'PO-2025-002', vendor: 'Vendor B', ordered_qty: 10, status: 'Completed', due_date: '2025-05-30' },
       ],
+      requestLocations: [
+        { location: 'Main Kitchen', quantity: 6, priority: 'High', notes: 'For daily breakfast service' },
+        { location: 'Banquet Kitchen', quantity: 3, priority: 'Medium', notes: 'For special events' },
+        { location: 'Café Counter', quantity: 1, priority: 'Low', notes: 'Backup supply' },
+      ],
       vendorPrices: [{vendor: 'Vendor A', price: 24.99}, {vendor: 'Vendor B', price: 23.50}],
       selectedVendor: 'Vendor A',
       businessDimensions: {
@@ -146,7 +154,7 @@ export default function PrApprovalDetailPage() {
       id: 2,
       name: "Organic Tea Bags",
       sku: "SKU22222",
-      status: "In-progress" as ItemStatus,
+      status: "Approved" as ItemStatus,
       requested: 5,
       unit: "box",
       onHand: 30,
@@ -165,6 +173,10 @@ export default function PrApprovalDetailPage() {
         { po_number: 'PO-2025-003', vendor: 'Vendor C', ordered_qty: 10, status: 'In Progress', due_date: '2025-06-10' },
         { po_number: 'PO-2025-004', vendor: 'Vendor D', ordered_qty: 5, status: 'Completed', due_date: '2025-05-25' },
       ],
+      requestLocations: [
+        { location: 'VIP Lounge', quantity: 3, priority: 'High', notes: 'Premium tea service for VIP guests' },
+        { location: 'Executive Floor', quantity: 2, priority: 'Medium', notes: 'Guest room minibar restocking' },
+      ],
       vendorPrices: [{vendor: 'Vendor C', price: 24.99}, {vendor: 'Vendor D', price: 23.50}],
       selectedVendor: 'Vendor C',
       businessDimensions: {
@@ -179,7 +191,7 @@ export default function PrApprovalDetailPage() {
       id: 3,
       name: "Specialty Sugar",
       sku: "SKU33333",
-      status: "In-progress" as ItemStatus,
+      status: "Review" as ItemStatus,
       requested: 8,
       unit: "kg",
       onHand: 15,
@@ -198,6 +210,11 @@ export default function PrApprovalDetailPage() {
         { po_number: 'PO-2025-005', vendor: 'Vendor E', ordered_qty: 8, status: 'In Progress', due_date: '2025-06-05' },
         { po_number: 'PO-2025-006', vendor: 'Vendor F', ordered_qty: 0, status: 'Completed', due_date: '2025-05-20' },
       ],
+      requestLocations: [
+        { location: 'Specialty Coffee Bar', quantity: 5, priority: 'High', notes: 'Premium brown sugar for artisan drinks' },
+        { location: 'Banquet Service', quantity: 2, priority: 'Medium', notes: 'For coffee stations at events' },
+        { location: 'Room Service', quantity: 1, priority: 'Low', notes: 'Guest requests for in-room coffee' },
+      ],
       vendorPrices: [{vendor: 'Vendor E', price: 22.99}, {vendor: 'Vendor F', price: 21.50}],
       selectedVendor: 'Vendor E',
       businessDimensions: {
@@ -212,7 +229,7 @@ export default function PrApprovalDetailPage() {
       id: 4,
       name: "Milk Frother",
       sku: "SKU44444",
-      status: "In-progress" as ItemStatus,
+      status: "Rejected" as ItemStatus,
       requested: 2,
       unit: "unit",
       onHand: 3,
@@ -230,6 +247,10 @@ export default function PrApprovalDetailPage() {
       onOrderData: [
         { po_number: 'PO-2025-007', vendor: 'Vendor G', ordered_qty: 2, status: 'In Progress', due_date: '2025-05-25' },
         { po_number: 'PO-2025-008', vendor: 'Vendor H', ordered_qty: 3, status: 'Completed', due_date: '2025-05-15' },
+      ],
+      requestLocations: [
+        { location: 'Main Café', quantity: 1, priority: 'High', notes: 'Replacement for broken equipment' },
+        { location: 'Conference Room Service', quantity: 1, priority: 'Medium', notes: 'Mobile coffee station backup' },
       ],
       vendorPrices: [{vendor: 'Vendor G', price: 19.99}, {vendor: 'Vendor H', price: 18.50}],
       selectedVendor: 'Vendor G',
@@ -254,16 +275,16 @@ export default function PrApprovalDetailPage() {
   const mockPR = {
     id: 123,
     number: "PR-2025-00123",
-    status: "In-progress" as ItemStatus,
-    workflowStage: 1, // HOD Review stage
+    status: "Converted" as ItemStatus,
+    workflowStage: 4, // Completed and converted to PO
     requestor: "Michelle Tan",
     department: "F&B",
     date: "2025-05-20",
     value: "$1,200.00",
     business_unit: "Grand Hotel Singapore",
-    role: "HOD", // Current workflow stage requires HOD approval
+    role: "Finance", // Last approval stage
     createdBy: "user-requestor",
-    currentApprover: "user-hod",
+    currentApprover: "user-finance",
     history: [
       {
         stage: 0,
@@ -280,6 +301,14 @@ export default function PrApprovalDetailPage() {
         role: "HOD",
         date: "2025-05-20",
         action: "Submitted for HOD Review"
+      },
+      {
+        stage: 4,
+        status: "Converted",
+        user: "Finance Team",
+        role: "Finance",
+        date: "2025-05-22",
+        action: "Approved and Converted to PO-2025-456"
       }
     ]
   };
@@ -317,35 +346,54 @@ export default function PrApprovalDetailPage() {
   // Workflow logic functions
   const determineWorkflowAction = () => {
     const itemStatuses = itemsState.map(item => item.status);
-    const allRejected = itemStatuses.every(status => status === 'Rejected');
-    const hasReview = itemStatuses.some(status => status === 'In-progress');
-    const hasCompleted = itemStatuses.some(status => status === 'Completed');
-    const hasPending = itemStatuses.some(status => status === 'In-progress');
-    const completedCount = itemStatuses.filter(status => status === 'Completed').length;
+    const approvedCount = itemStatuses.filter(status => status === 'Approved').length;
     const rejectedCount = itemStatuses.filter(status => status === 'Rejected').length;
+    const reviewCount = itemStatuses.filter(status => status === 'Review').length;
+    const pendingCount = itemStatuses.filter(status => status === 'Pending').length;
+    const totalItems = itemStatuses.length;
 
-    if (allRejected) {
-      return `Reject PR (${rejectedCount} items)`;
-    } else if (hasReview) {
-      return `Return for Review`;
-    } else if (hasCompleted && !hasPending) {
-      return `Approve PR (${completedCount} items)`;
-    } else {
-      return `Partial Approval (${completedCount} approved)`;
+    // All items rejected - reject the entire PR
+    if (rejectedCount === totalItems) {
+      return `REJECT_PR`;
     }
+    
+    // Any items need review - return for review
+    if (reviewCount > 0) {
+      return `RETURN_FOR_REVIEW`;
+    }
+    
+    // All remaining items are approved (no pending, no review) - full approval
+    if (approvedCount > 0 && pendingCount === 0 && reviewCount === 0) {
+      return `APPROVE_PR`;
+    }
+    
+    // Mixed status or all pending - partial/pending approval
+    if (approvedCount > 0) {
+      return `PARTIAL_APPROVAL`;
+    }
+    
+    // All items still pending - not ready for submission
+    return `NOT_READY`;
   };
 
   const handleSubmit = async () => {
     const workflowAction = determineWorkflowAction();
+    const itemStatuses = itemsState.map(item => item.status);
+    const approvedCount = itemStatuses.filter(status => status === 'Approved').length;
+    const rejectedCount = itemStatuses.filter(status => status === 'Rejected').length;
+    const reviewCount = itemStatuses.filter(status => status === 'Review').length;
     
-    if (workflowAction === 'Reject PR (0 items)') {
-      alert('All items rejected - PR will be rejected');
+    // Prevent submission for invalid states
+    if (workflowAction === 'NOT_READY') {
+      alert('Please review all items before submitting. Items cannot be left in Pending status.');
       return;
-    } else if (workflowAction === 'Return for Review') {
-      alert('Items marked for review - PR will be returned to previous stage');
-      return;
-    } else if (workflowAction === 'Partial Approval (0 approved)') {
-      alert('Please review all items before submitting');
+    }
+
+    // Validate comment requirement for return/rejection
+    if ((workflowAction === 'RETURN_FOR_REVIEW' || workflowAction === 'REJECT_PR') && !reviewComment.trim()) {
+      alert(workflowAction === 'RETURN_FOR_REVIEW' 
+        ? 'Please provide a comment explaining why items need review.' 
+        : 'Please provide a reason for rejecting this PR.');
       return;
     }
 
@@ -355,9 +403,32 @@ export default function PrApprovalDetailPage() {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // In real app, this would update the PR status via API
+      // Log the action for debugging
       console.log('Workflow action:', workflowAction);
       console.log('Item statuses:', itemsState.map(item => ({ id: item.id, status: item.status })));
+      console.log('Comment:', reviewComment);
+      console.log('Sendback step:', sendbackStep);
+      
+      // Show success message based on action
+      switch (workflowAction) {
+        case 'REJECT_PR':
+          alert(`PR rejected - all ${rejectedCount} items were rejected\nReason: ${reviewComment}`);
+          break;
+        case 'RETURN_FOR_REVIEW':
+          const stepName = getWorkflowSteps().find(s => s.id === sendbackStep)?.label || 'Unknown';
+          alert(`PR returned for review to ${stepName} - ${reviewCount} item(s) need additional review\nComment: ${reviewComment}`);
+          break;
+        case 'APPROVE_PR':
+          alert(`PR fully approved - all ${approvedCount} items approved`);
+          break;
+        case 'PARTIAL_APPROVAL':
+          alert(`PR partially approved - ${approvedCount} item(s) approved`);
+          break;
+      }
+      
+      // Reset form state
+      setReviewComment("");
+      setSendbackStep(0);
       
       // Navigate back to PR list
       router.push('/pr-approval');
@@ -372,10 +443,16 @@ export default function PrApprovalDetailPage() {
 
   const getSubmitButtonText = () => {
     const workflowAction = determineWorkflowAction();
+    const itemStatuses = itemsState.map(item => item.status);
+    const approvedCount = itemStatuses.filter(status => status === 'Approved').length;
+    const rejectedCount = itemStatuses.filter(status => status === 'Rejected').length;
+    
     switch (workflowAction) {
-      case 'Reject PR (0 items)': return 'Submit & Reject';
-      case 'Return for Review': return 'Submit & Return';
-      case 'Partial Approval (0 approved)': return 'Submit';
+      case 'REJECT_PR': return `Reject PR (${rejectedCount} items)`;
+      case 'RETURN_FOR_REVIEW': return 'Return for Review';
+      case 'APPROVE_PR': return `Approve PR (${approvedCount} items)`;
+      case 'PARTIAL_APPROVAL': return `Partial Approval (${approvedCount} items)`;
+      case 'NOT_READY': return 'Review Required';
       default: return 'Submit';
     }
   };
@@ -383,16 +460,18 @@ export default function PrApprovalDetailPage() {
   const getSubmitButtonColor = () => {
     const workflowAction = determineWorkflowAction();
     switch (workflowAction) {
-      case 'Reject PR (0 items)': return 'bg-red-600 hover:bg-red-700';
-      case 'Return for Review': return 'bg-orange-600 hover:bg-orange-700';
-      case 'Partial Approval (0 approved)': return 'bg-gray-400';
+      case 'REJECT_PR': return 'bg-red-600 hover:bg-red-700';
+      case 'RETURN_FOR_REVIEW': return 'bg-orange-600 hover:bg-orange-700';
+      case 'APPROVE_PR': return 'bg-green-600 hover:bg-green-700';
+      case 'PARTIAL_APPROVAL': return 'bg-blue-600 hover:bg-blue-700';
+      case 'NOT_READY': return 'bg-gray-400 cursor-not-allowed';
       default: return 'bg-green-600 hover:bg-green-700';
     }
   };
 
   const canSubmit = () => {
     const workflowAction = determineWorkflowAction();
-    return workflowAction !== 'Reject PR (0 items)' && workflowAction !== 'Return for Review' && workflowAction !== 'Partial Approval (0 approved)';
+    return workflowAction !== 'NOT_READY';
   };
 
   // Check if any items have been edited
@@ -509,58 +588,81 @@ export default function PrApprovalDetailPage() {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 relative mx-auto">
       {/* User Context Info */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4 px-4">
-        {/* User Switcher for Testing */}
-        <div className="mb-3 pb-3 border-b border-blue-200 dark:border-blue-700">
-          <label className="block text-xs font-medium text-blue-900 dark:text-blue-100 mb-2">
-            🧪 Test User Switcher (Development Only)
-          </label>
-          <select
-            value={currentUserId}
-            onChange={(e) => setCurrentUserId(e.target.value)}
-            className="w-full text-xs border border-blue-300 dark:border-blue-600 rounded px-2 py-1 bg-white dark:bg-blue-800 text-blue-900 dark:text-blue-100"
+      <div className="mb-4">
+        {/* Toggle Button */}
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-medium text-gray-900 dark:text-gray-100">
+            🧪 Development Panel
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200"
+            onClick={() => setShowTestPanel(!showTestPanel)}
           >
-            {mockUsers.map(user => (
-              <option key={user.id} value={user.id}>
-                {user.name} - {user.businessUnits.join(', ')}
-              </option>
-            ))}
-          </select>
+            {showTestPanel ? (
+              <ChevronLeft className="h-3 w-3 rotate-90" />
+            ) : (
+              <ChevronRight className="h-3 w-3" />
+            )}
+          </Button>
         </div>
 
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-sm text-blue-900 dark:text-blue-100">
-              <span className="font-medium">Your Role:</span> {workflowInfo.userRole} 
-              <span className="ml-2 text-xs">({workflowInfo.stageDescription})</span>
+        {showTestPanel && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 px-4">
+            {/* User Switcher for Testing */}
+            <div className="mb-3 pb-3 border-b border-blue-200 dark:border-blue-700">
+              <label className="block text-xs font-medium text-blue-900 dark:text-blue-100 mb-2">
+                🧪 Test User Switcher (Development Only)
+              </label>
+              <select
+                value={currentUserId}
+                onChange={(e) => setCurrentUserId(e.target.value)}
+                className="w-full text-xs border border-blue-300 dark:border-blue-600 rounded px-2 py-1 bg-white dark:bg-blue-800 text-blue-900 dark:text-blue-100"
+              >
+                {mockUsers.map(user => (
+                  <option key={user.id} value={user.id}>
+                    {user.name} - {user.businessUnits.join(', ')}
+                  </option>
+                ))}
+              </select>
             </div>
-            <div className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-              <span className="font-medium">Stage Requires:</span> {workflowInfo.requiredRole} approval
-            </div>
-            <div className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-              <span className="font-medium">Business Unit Access:</span> {hasBusinessUnitAccess ? "✓ Authorized" : "✗ No access"} for {mockPR.business_unit}
-            </div>
-            <div className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-              {workflowInfo.canApprove 
-                ? "✓ You can approve this PR" 
-                : userCanAct 
-                  ? "⚠ No business unit access" 
-                  : "⚠ This PR requires approval from " + workflowInfo.requiredRole
-              }
+
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm text-blue-900 dark:text-blue-100">
+                  <span className="font-medium">Your Role:</span> {workflowInfo.userRole} 
+                  <span className="ml-2 text-xs">({workflowInfo.stageDescription})</span>
+                </div>
+                <div className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                  <span className="font-medium">Stage Requires:</span> {workflowInfo.requiredRole} approval
+                </div>
+                <div className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                  <span className="font-medium">Business Unit Access:</span> {hasBusinessUnitAccess ? "✓ Authorized" : "✗ No access"} for {mockPR.business_unit}
+                </div>
+                <div className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                  {workflowInfo.canApprove 
+                    ? "✓ You can approve this PR" 
+                    : userCanAct 
+                      ? "⚠ No business unit access" 
+                      : "⚠ This PR requires approval from " + workflowInfo.requiredRole
+                  }
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-blue-700 dark:text-blue-300">
+                  Workflow Stage {workflowInfo.currentStage + 1}
+                </div>
+                <div className="text-xs font-medium text-blue-900 dark:text-blue-100">
+                  {workflowInfo.stageName}
+                </div>
+                <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                  Needs: {workflowInfo.requiredRole}
+                </div>
+              </div>
             </div>
           </div>
-          <div className="text-right">
-            <div className="text-xs text-blue-700 dark:text-blue-300">
-              Workflow Stage {workflowInfo.currentStage + 1}
-            </div>
-            <div className="text-xs font-medium text-blue-900 dark:text-blue-100">
-              {workflowInfo.stageName}
-            </div>
-            <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-              Needs: {workflowInfo.requiredRole}
-            </div>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* PR Header Card */}
@@ -568,7 +670,7 @@ export default function PrApprovalDetailPage() {
         <Card className="mb-4 p-4 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm bg-white dark:bg-gray-800">
           <div className="mb-2">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center">
                 <Button 
                   variant="ghost" 
                   size="sm" 
@@ -580,15 +682,9 @@ export default function PrApprovalDetailPage() {
                 <span className="font-bold text-base text-gray-900 dark:text-gray-100">{mockPR.number}</span>
               </div>
               <div className="flex flex-col items-end gap-1">
-                <Badge className={`border text-xs ${statusColor[mockPR.status as ItemStatus] || 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600'}`}>
-                  {mockPR.status}
-                </Badge>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  Stage: {getWorkflowStageLabel(mockPR.workflowStage)}
-                </span>
+                <span className="text-blue-700 dark:text-blue-400 text-sm font-semibold">{mockPR.business_unit}</span>
               </div>
             </div>
-            <div className="mt-1 text-blue-700 dark:text-blue-400 text-[11px] font-semibold">BU: {mockPR.business_unit}</div>
             <div className="flex flex-row justify-between gap-2 mt-2 text-xs text-gray-600 dark:text-gray-400">
               <div><span className="font-medium">Requestor:</span> {mockPR.requestor}</div>
               <div><span className="font-medium">Department:</span> {mockPR.department}</div>
@@ -606,6 +702,12 @@ export default function PrApprovalDetailPage() {
                   <span className="font-medium">Workflow Stage:</span> {getWorkflowStageLabel(mockPR.workflowStage)}
                 </span>
               </div>
+              {/* Last Action Field */}
+              <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                <div className="text-xs text-gray-600 dark:text-gray-400">
+                  <span className="font-medium">Last Action:</span> {mockPR.history[mockPR.history.length - 1].action} by {mockPR.history[mockPR.history.length - 1].user} ({mockPR.history[mockPR.history.length - 1].date})
+                </div>
+              </div>
             </div>
           </div>
         </Card>
@@ -616,17 +718,16 @@ export default function PrApprovalDetailPage() {
         <div>
           <div className="flex items-center mb-4">
             <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="mr-2 w-4 h-4 accent-blue-600" />
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Items</h2>
-            <span className="ml-auto text-sm text-gray-500 dark:text-gray-400">{currentDate}</span>
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Items</h2>
           </div>
 
           {selectedItems.length > 0 && (
             <div className="flex gap-2 mb-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg items-center">
               <span className="text-xs font-medium text-blue-700 dark:text-blue-300">Bulk Action:</span>
-              <Button size="sm" className="bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 border border-blue-600 dark:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30" onClick={() => setItemsState(prev => prev.map(item => selectedItems.includes(item.id) ? { ...item, status: 'Completed', isEdited: false } : item))}>Approve</Button>
-              <Button size="sm" className="bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600" onClick={() => setItemsState(prev => prev.map(item => selectedItems.includes(item.id) ? { ...item, status: 'In-progress', isEdited: false } : item))}>Review</Button>
+              <Button size="sm" className="bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 border border-blue-600 dark:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30" onClick={() => setItemsState(prev => prev.map(item => selectedItems.includes(item.id) ? { ...item, status: 'Approved', isEdited: false } : item))}>Approve</Button>
+              <Button size="sm" className="bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600" onClick={() => setItemsState(prev => prev.map(item => selectedItems.includes(item.id) ? { ...item, status: 'Review', isEdited: false } : item))}>Review</Button>
               <Button size="sm" className="bg-white dark:bg-gray-700 text-red-600 dark:text-red-400 border border-red-600 dark:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/30" onClick={() => setItemsState(prev => prev.map(item => selectedItems.includes(item.id) ? { ...item, status: 'Rejected', isEdited: false } : item))}>Reject</Button>
-              <Button size="sm" className="bg-white dark:bg-gray-700 text-yellow-600 dark:text-yellow-400 border border-yellow-600 dark:border-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/30" onClick={() => setItemsState(prev => prev.map(item => selectedItems.includes(item.id) ? { ...item, status: 'In-progress', isEdited: false } : item))}>Reset</Button>
+              <Button size="sm" className="bg-white dark:bg-gray-700 text-yellow-600 dark:text-yellow-400 border border-yellow-600 dark:border-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/30" onClick={() => setItemsState(prev => prev.map(item => selectedItems.includes(item.id) ? { ...item, status: 'Pending', isEdited: false } : item))}>Reset</Button>
             </div>
           )}
 
@@ -637,7 +738,7 @@ export default function PrApprovalDetailPage() {
                   <div className="flex items-center">
                     <input type="checkbox" checked={selectedItems.includes(item.id)} onChange={() => toggleSelectItem(item.id)} className="mr-2 w-4 h-4 accent-blue-600" />
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{item.name}</h3>
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{item.name}</h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400">SKU: {item.sku}</p>
                     </div>
                   </div>
@@ -654,7 +755,7 @@ export default function PrApprovalDetailPage() {
                 <div className="grid grid-cols-2 gap-4 mt-4">
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Requested:</p>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">{item.requested} {item.unit}</p>
+                                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.requested} {item.unit}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Approved:</p>
@@ -681,11 +782,11 @@ export default function PrApprovalDetailPage() {
                 <div className="grid grid-cols-2 gap-4 mt-3">
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Unit Price:</p>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">${item.unitPrice.toFixed(2)}</p>
+                                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">${item.unitPrice.toFixed(2)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Price:</p>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">${item.totalPrice.toFixed(2)}</p>
+                                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">${item.totalPrice.toFixed(2)}</p>
                   </div>
                 </div>
 
@@ -732,10 +833,10 @@ export default function PrApprovalDetailPage() {
 
                 <div className="mt-3">
                   <div className="grid grid-cols-3 gap-2 mt-3">
-                    <Button size="sm" className="bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 border border-blue-600 dark:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 !rounded-button" onClick={() => setItemsState(prev => prev.map(i => i.id === item.id ? { ...i, status: 'Completed', isEdited: false } : i))}>
+                    <Button size="sm" className="bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 border border-blue-600 dark:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 !rounded-button" onClick={() => setItemsState(prev => prev.map(i => i.id === item.id ? { ...i, status: 'Approved', isEdited: false } : i))}>
                       Approve
                     </Button>
-                    <Button size="sm" className="bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 !rounded-button" onClick={() => setItemsState(prev => prev.map(i => i.id === item.id ? { ...i, status: 'In-progress', isEdited: false } : i))}>
+                    <Button size="sm" className="bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 !rounded-button" onClick={() => setItemsState(prev => prev.map(i => i.id === item.id ? { ...i, status: 'Review', isEdited: false } : i))}>
                       Review
                     </Button>
                     <Button size="sm" className="bg-white dark:bg-gray-700 text-red-600 dark:text-red-400 border border-red-600 dark:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 !rounded-button" onClick={() => setItemsState(prev => prev.map(i => i.id === item.id ? { ...i, status: 'Rejected', isEdited: false } : i))}>
@@ -902,9 +1003,17 @@ export default function PrApprovalDetailPage() {
               </div>
 
               {/* Comments */}
-              <div>
-                <p className="text-xs text-gray-500 mb-1">Comments</p>
-                <p className="text-sm">{selectedItem.comments}</p>
+              <div className="mb-4">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Comments</p>
+                <p className="text-sm text-gray-900 dark:text-gray-100">{selectedItem.comments}</p>
+              </div>
+
+              {/* Location of Request */}
+              <div className="mb-4">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Location of Request</p>
+                <Card className="p-3 bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600">
+                  <span className="font-medium text-gray-900 dark:text-gray-100">Main Kitchen</span>
+                </Card>
               </div>
 
               {/* Action Buttons */}
@@ -925,23 +1034,23 @@ export default function PrApprovalDetailPage() {
       </Dialog>
 
       {/* Bottom Action Bar */}
-      <div className="fixed bottom-16 left-0 right-0 bg-white dark:bg-gray-800 shadow-md p-3 w-[375px] mx-auto border-t border-gray-200 dark:border-gray-700">
+      <div className="fixed bottom-16 left-0 right-0 p-3 w-[375px] mx-auto">
         {/* Workflow Status Indicator */}
         <div className="mb-3 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
           <div className="flex items-center gap-2 text-xs">
-            {determineWorkflowAction() === 'Reject PR (0 items)' && (
+            {determineWorkflowAction() === 'REJECT_PR' && (
               <>
                 <XCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
                 <span className="text-red-700 dark:text-red-300 font-medium">All items rejected - PR will be rejected</span>
               </>
             )}
-            {determineWorkflowAction() === 'Return for Review' && (
+            {determineWorkflowAction() === 'RETURN_FOR_REVIEW' && (
               <>
                 <AlertCircle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                 <span className="text-orange-700 dark:text-orange-300 font-medium">Items need review - will return to previous stage</span>
               </>
             )}
-            {determineWorkflowAction() === 'Partial Approval (0 approved)' && (
+            {determineWorkflowAction() === 'NOT_READY' && (
               <>
                 <AlertCircle className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                 <span className="text-gray-700 dark:text-gray-300">Please review all items before submitting</span>
@@ -984,7 +1093,7 @@ export default function PrApprovalDetailPage() {
         <div className="grid grid-cols-6 gap-1">
           <div className="flex flex-col items-center cursor-pointer">
             <i className="fas fa-home text-blue-600 dark:text-blue-400 text-[14px]"></i>
-            <span className="text-[9px] mt-0.5 text-blue-600 dark:text-blue-400">Dashboard</span>
+            <span className="text-[9px] mt-0.5 text-blue-600 dark:text-blue-400">Home</span>
           </div>
           <div className="flex flex-col items-center cursor-pointer">
             <i className="fas fa-box text-gray-500 dark:text-gray-400 text-[14px]"></i>
@@ -1043,6 +1152,8 @@ export default function PrApprovalDetailPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      
 
       {/* On Order Dialog */}
       <Dialog open={!!onOrderItem} onOpenChange={() => setOnOrderItem(null)}>
@@ -1149,7 +1260,7 @@ export default function PrApprovalDetailPage() {
               <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 mb-4 border border-gray-200 dark:border-gray-600">
                 <h4 className="text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Item Status Summary:</h4>
                 <div className="space-y-1 text-xs">
-                  {['Completed', 'Rejected', 'In-progress'].map(status => {
+                  {['Approved', 'Rejected', 'Review', 'Pending'].map(status => {
                     const count = itemsState.filter(item => item.status === status).length;
                     if (count === 0) return null;
                     return (
@@ -1161,6 +1272,45 @@ export default function PrApprovalDetailPage() {
                   })}
                 </div>
               </div>
+
+              {/* Return for Review Section */}
+              {determineWorkflowAction() === 'RETURN_FOR_REVIEW' && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">
+                    Send back to step:
+                  </label>
+                  <select
+                    value={sendbackStep}
+                    onChange={(e) => setSendbackStep(Number(e.target.value))}
+                    className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  >
+                    {getWorkflowSteps().map(step => (
+                      <option key={step.id} value={step.id}>
+                        {step.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Comment Section for Return for Review */}
+              {(determineWorkflowAction() === 'RETURN_FOR_REVIEW' || determineWorkflowAction() === 'REJECT_PR') && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">
+                    {determineWorkflowAction() === 'RETURN_FOR_REVIEW' ? 'Return Comment:' : 'Rejection Reason:'}
+                  </label>
+                  <textarea
+                    value={reviewComment}
+                    onChange={(e) => setReviewComment(e.target.value)}
+                    placeholder={determineWorkflowAction() === 'RETURN_FOR_REVIEW' 
+                      ? "Please explain why these items need review..." 
+                      : "Please explain why this PR is being rejected..."
+                    }
+                    className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 min-h-[80px] resize-none"
+                    required
+                  />
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3">

@@ -59,7 +59,7 @@ export default function StoreRequisitionDetailPage() {
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   
   // State for SR status
-  const [srStatus, setSrStatus] = useState<"Draft" | "Submitted" | "HOD Approved" | "Approved" | "Rejected">("Submitted");
+  const [srStatus, setSrStatus] = useState<"Draft" | "In-progress" | "Complete" | "Issued" | "Rejected" | "Cancel">("In-progress");
   
   // New state for workflow logic
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -71,7 +71,7 @@ export default function StoreRequisitionDetailPage() {
   const [requisition, setRequisition] = useState({
     id: id,
     srNumber: `SR-2025-${id}`,
-    status: "Pending",
+    status: "In-progress",
     requestDate: "2025-05-20",
     requestingDepartment: "F&B",
     sourceLocation: "Main Store",
@@ -185,11 +185,11 @@ export default function StoreRequisitionDetailPage() {
     const anyRejected = items.some(item => item.status === "Rejected");
     
     if (allApproved) {
-      setSrStatus("HOD Approved");
+      setSrStatus("Complete");
     } else if (anyRejected) {
       setSrStatus("Rejected");
     } else {
-      setSrStatus("Submitted");
+      setSrStatus("In-progress");
     }
   };
 
@@ -415,26 +415,24 @@ export default function StoreRequisitionDetailPage() {
     { key: "Fulfilled", label: "Fulfilled" },
   ];
 
-  type SRStatus = "Draft" | "Submitted" | "HOD Approved" | "Approved" | "Fulfilled" | "Partially Fulfilled" | "Rejected" | "Returned";
+  type SRStatus = "Draft" | "In-progress" | "Complete" | "Issued" | "Rejected" | "Cancel";
 
   function getCurrentStep(status: SRStatus) {
     if (status === "Draft") return 0;
-    if (status === "Submitted") return 1;
-    if (status === "HOD Approved") return 2;
-    if (status === "Approved" || status === "Fulfilled" || status === "Partially Fulfilled") return 3;
-    if (status === "Rejected" || status === "Returned") return 1;
+    if (status === "In-progress") return 1;
+    if (status === "Complete") return 2;
+    if (status === "Issued") return 3;
+    if (status === "Rejected" || status === "Cancel") return 1;
     return 0;
   }
 
   const statusColors: Record<string, string> = {
     Draft: "bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600",
-    Submitted: "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-600",
-    "HOD Approved": "bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-950 dark:text-yellow-300 dark:border-yellow-600",
-    Approved: "bg-green-100 text-green-800 border-green-300 dark:bg-green-950 dark:text-green-300 dark:border-green-600",
-    Fulfilled: "bg-green-200 text-green-900 border-green-400 dark:bg-green-900 dark:text-green-200 dark:border-green-700",
-    "Partially Fulfilled": "bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-950 dark:text-yellow-300 dark:border-yellow-600",
+    "In-progress": "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-600",
+    Complete: "bg-green-100 text-green-800 border-green-300 dark:bg-green-950 dark:text-green-300 dark:border-green-600",
+    Issued: "bg-green-200 text-green-900 border-green-400 dark:bg-green-900 dark:text-green-200 dark:border-green-700",
     Rejected: "bg-red-100 text-red-800 border-red-300 dark:bg-red-950 dark:text-red-300 dark:border-red-600",
-    Returned: "bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-600",
+    Cancel: "bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-600",
   };
 
   return (
@@ -493,6 +491,24 @@ export default function StoreRequisitionDetailPage() {
           <div>
             <div className="text-gray-500 dark:text-gray-400 text-sm">Value:</div>
             <div className="text-base">{requisition.value}</div>
+          </div>
+        </div>
+        
+        {/* Document Status Section */}
+        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-gray-600 dark:text-gray-400">
+              <span className="font-medium">Document Status:</span> {srStatus}
+            </span>
+            <span className="text-gray-600 dark:text-gray-400">
+              <span className="font-medium">Workflow Stage:</span> {workflowSteps[getCurrentStep(srStatus as SRStatus)]?.label}
+            </span>
+          </div>
+          {/* Last Action Field */}
+          <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+            <div className="text-xs text-gray-600 dark:text-gray-400">
+              <span className="font-medium">Last Action:</span> Submitted for HOD Review by {requisition.requestor} ({requisition.requestDate})
+            </div>
           </div>
         </div>
         

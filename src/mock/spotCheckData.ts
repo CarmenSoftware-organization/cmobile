@@ -16,8 +16,8 @@ export const mockSpotCheckSessions = [
   },
   {
     id: 202,
-    name: "Bar - Spot Check June 2024",
-    location: "Bar",
+    name: "Bar Storage - Spot Check June 2024",
+    location: "Bar Storage",
     businessUnit: "Grand Hotel Singapore",
     selectionMethod: "Manual",
     itemCount: 20,
@@ -29,8 +29,8 @@ export const mockSpotCheckSessions = [
   },
   {
     id: 203,
-    name: "Mini Bar - Spot Check May 2024",
-    location: "Mini Bar",
+    name: "Kitchen Storage - Spot Check May 2024",
+    location: "Kitchen Storage",
     businessUnit: "Business Hotel Jakarta",
     selectionMethod: "High Value",
     itemCount: 5,
