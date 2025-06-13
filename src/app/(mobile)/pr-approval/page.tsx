@@ -248,39 +248,85 @@ export default function PrApprovalListPage() {
           </button>
         </div>
 
+        {/* Filter Popup Panel */}
         {showFilters && (
-          <div className="flex gap-2 mb-2 items-center">
-            <select
-              className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
-              value={sort}
-              onChange={e => setSort(e.target.value)}
-            >
-                              <option value="date-desc">Date ↓</option>
-                  <option value="date-asc">Date ↑</option>
-                            <option value="status">Stage</option>
-              <option value="bu">Business Unit</option>
-            </select>
-            <select
-              className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
-              value={stageFilter === null ? "" : stageFilter.toString()}
-              onChange={e => setStageFilter(e.target.value === "" ? null : parseInt(e.target.value))}
-            >
-              <option value="">All Stages</option>
-              {fullWorkflowStagesForDisplay.map(stage => (
-                <option key={stage.id} value={stage.id.toString()}>
-                  {stage.label}
-                </option>
-              ))}
-            </select>
-            <select
-              className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
-              value={prTypeFilter || ""}
-              onChange={e => setPrTypeFilter(e.target.value === "" ? null : e.target.value)}
-            >
-              <option value="">All Types</option>
-              <option value="General">General</option>
-              <option value="Market List">Market List</option>
-            </select>
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-sm w-full mx-4 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Filter Options</h3>
+                <button
+                  onClick={() => setShowFilters(false)}
+                  className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sort By</label>
+                  <select
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+                    value={sort}
+                    onChange={e => setSort(e.target.value)}
+                  >
+                    <option value="date-desc">Date ↓</option>
+                    <option value="date-asc">Date ↑</option>
+                    <option value="status">Stage</option>
+                    <option value="bu">Business Unit</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Workflow Stage</label>
+                  <select
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+                    value={stageFilter === null ? "" : stageFilter.toString()}
+                    onChange={e => setStageFilter(e.target.value === "" ? null : parseInt(e.target.value))}
+                  >
+                    <option value="">All Stages</option>
+                    {fullWorkflowStagesForDisplay.map(stage => (
+                      <option key={stage.id} value={stage.id.toString()}>
+                        {stage.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">PR Type</label>
+                  <select
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+                    value={prTypeFilter || ""}
+                    onChange={e => setPrTypeFilter(e.target.value === "" ? null : e.target.value)}
+                  >
+                    <option value="">All Types</option>
+                    <option value="General">General</option>
+                    <option value="Market List">Market List</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="flex gap-2 mt-6">
+                <button
+                  onClick={() => {
+                    setBuFilter(null);
+                    setStageFilter(null);
+                    setPrTypeFilter(null);
+                    setSort("date-desc");
+                  }}
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+                >
+                  Clear All
+                </button>
+                <button
+                  onClick={() => setShowFilters(false)}
+                  className="flex-1 px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
