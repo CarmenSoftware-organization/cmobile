@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, Search, Filter } from "lucide-react";
 import { mockPOs, type PurchaseOrder } from "@/data/mockPOData";
 
-export default function AdvancedSearchPage() {
+function AdvancedSearchContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedBusinessUnit = searchParams.get('bu') || "";
@@ -256,5 +256,13 @@ export default function AdvancedSearchPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function AdvancedSearchPage() {
+  return (
+    <Suspense fallback={<div className="p-4">Loading...</div>}>
+      <AdvancedSearchContent />
+    </Suspense>
   );
 }

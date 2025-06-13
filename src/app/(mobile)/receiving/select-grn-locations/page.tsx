@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, MapPin, Package, CheckCircle } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { mockPOs, getLocationsFromPOs } from "@/data/mockPOData";
 
-export default function SelectGRNLocationsPage() {
+function SelectGRNLocationsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
@@ -209,4 +209,12 @@ export default function SelectGRNLocationsPage() {
       </div>
     </div>
   );
-} 
+}
+
+export default function SelectGRNLocationsPageWithSuspense() {
+  return (
+    <Suspense fallback={<div className="p-4">Loading locations...</div>}>
+      <SelectGRNLocationsPage />
+    </Suspense>
+  );
+}

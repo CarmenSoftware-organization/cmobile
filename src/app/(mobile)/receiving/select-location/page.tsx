@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, MapPin, CheckCircle } from "lucide-react";
@@ -15,7 +15,7 @@ interface Location {
   active: boolean;
 }
 
-export default function SelectLocationPage() {
+function SelectLocationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedLocation, setSelectedLocation] = useState<number | null>(null);
@@ -225,5 +225,13 @@ export default function SelectLocationPage() {
         </Button>
       </div>
     </div>
+  );
+}
+
+export default function SelectLocationPage() {
+  return (
+    <Suspense fallback={<div className="p-4">Loading...</div>}>
+      <SelectLocationContent />
+    </Suspense>
   );
 } 

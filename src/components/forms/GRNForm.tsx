@@ -6,10 +6,25 @@ import { mockVendors } from "@/data/mockGRNData";
 
 export type GRNFormMode = "create" | "view" | "edit";
 
+export interface GRNFormData {
+  refNumber: string;
+  date: string;
+  invoiceDate: string;
+  invoiceNumber: string;
+  description: string;
+  receiver: string;
+  vendorId: string;
+  businessUnit: string;
+  isConsignment: boolean;
+  isCashPayment: boolean;
+  currency: string;
+  exchangeRate: number;
+}
+
 export interface GRNFormProps {
   mode: GRNFormMode;
-  initialData?: any;
-  onSubmit: (data: any) => void;
+  initialData?: Partial<GRNFormData>;
+  onSubmit: (data: GRNFormData) => void;
   onEdit?: () => void;
   onDelete?: () => void;
   onCancel?: () => void;
@@ -33,7 +48,7 @@ export const GRNForm: React.FC<GRNFormProps> = ({ mode, initialData = {}, onSubm
 
   const readOnly = mode === "view";
 
-  const handleChange = (field: string, value: any) => {
+  const handleChange = (field: keyof GRNFormData, value: string | number | boolean) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 

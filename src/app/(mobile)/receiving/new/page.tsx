@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Calendar, ChevronDown, Camera } from "lucide-react";
@@ -56,7 +56,7 @@ const pos = mockPOs;
 const statusOptions = ["All", "Sent", "Partial"];
 const deliveryDateOptions = ["All", "Today", "This Week", "Next Week", "Overdue"];
 
-export default function NewGoodReceiveNotePage() {
+function NewGoodReceiveNotePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const vendorIdParam = searchParams.get("vendorId");
@@ -450,4 +450,12 @@ export default function NewGoodReceiveNotePage() {
       )}
     </div>
   );
-} 
+}
+
+export default function NewGoodReceiveNotePageWithSuspense() {
+  return (
+    <Suspense fallback={<div className="p-4">Loading...</div>}>
+      <NewGoodReceiveNotePage />
+    </Suspense>
+  );
+}

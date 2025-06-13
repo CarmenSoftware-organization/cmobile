@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 
@@ -28,7 +28,7 @@ const selectionMethods = [
   }
 ];
 
-export default function SpotCheckMethodPage() {
+function SpotCheckMethodContent() {
   const [method, setMethod] = useState("random");
   const [minValue, setMinValue] = useState(50);
   const router = useRouter();
@@ -220,5 +220,13 @@ export default function SpotCheckMethodPage() {
         </button>
       </main>
     </div>
+  );
+}
+
+export default function SpotCheckMethodPage() {
+  return (
+    <Suspense fallback={<div className="p-4">Loading...</div>}>
+      <SpotCheckMethodContent />
+    </Suspense>
   );
 }

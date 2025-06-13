@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, Search, Filter, ChevronDown, ChevronUp, Package, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { getProductsByLocation, searchProducts, getCategories, type InventoryItem } from "@/data/mockInventoryData";
 
-export default function SpotCheckItemsPage() {
+function SpotCheckItemsPage() {
   const [itemCount, setItemCount] = useState(20);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -392,5 +392,13 @@ export default function SpotCheckItemsPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function SpotCheckItemsPageWithSuspense() {
+  return (
+    <Suspense fallback={<div className="p-4">Loading spot check items...</div>}>
+      <SpotCheckItemsPage />
+    </Suspense>
   );
 }

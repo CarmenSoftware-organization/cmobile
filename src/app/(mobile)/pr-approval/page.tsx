@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Filter } from "lucide-react";
 
 // Import shared workflow configuration
 import {
@@ -28,7 +28,8 @@ const prApprovals: PR[] = [
     value: "$1,200.00",
     business_unit: "Grand Hotel Singapore",
     role: "HOD",
-    lastAction: "Returned for Review by Finance Team (2024-06-02)"
+    lastAction: "Returned for Review by Finance Team (2024-06-02)",
+    prType: "General"
   },
   {
     id: 2,
@@ -41,6 +42,7 @@ const prApprovals: PR[] = [
     value: "$800.00",
     business_unit: "Business Hotel Jakarta",
     role: "Finance",
+    prType: "Market List"
   },
   {
     id: 3,
@@ -53,7 +55,8 @@ const prApprovals: PR[] = [
     value: "$600.00",
     business_unit: "Boutique Hotel Bangkok",
     role: "Finance",
-    lastAction: "Returned for Review by HOD (2024-06-04)"
+    lastAction: "Returned for Review by HOD (2024-06-04)",
+    prType: "General"
   },
   {
     id: 9,
@@ -66,6 +69,7 @@ const prApprovals: PR[] = [
     value: "$2,500.00",
     business_unit: "Grand Hotel Singapore",
     role: "Purchasing",
+    prType: "Market List"
   },
   {
     id: 4,
@@ -78,6 +82,7 @@ const prApprovals: PR[] = [
     value: "$900.00",
     business_unit: "Grand Hotel Singapore",
     role: "Finance",
+    prType: "General"
   },
   {
     id: 5,
@@ -90,6 +95,7 @@ const prApprovals: PR[] = [
     value: "$450.00",
     business_unit: "Business Hotel Jakarta",
     role: "Requestor",
+    prType: "Market List"
   },
   {
     id: 6,
@@ -102,6 +108,7 @@ const prApprovals: PR[] = [
     value: "$1,100.00",
     business_unit: "Boutique Hotel Bangkok",
     role: "Finance",
+    prType: "General"
   },
   {
     id: 7,
@@ -114,6 +121,7 @@ const prApprovals: PR[] = [
     value: "$2,000.00",
     business_unit: "Grand Hotel Singapore",
     role: "HOD",
+    prType: "Market List"
   },
   {
     id: 8,
@@ -126,6 +134,7 @@ const prApprovals: PR[] = [
     value: "$700.00",
     business_unit: "Business Hotel Jakarta",
     role: "Finance",
+    prType: "General"
   },
 ];
 
@@ -150,14 +159,27 @@ const fullWorkflowStagesForDisplay: WorkflowStageDisplay[] = [
 export default function PrApprovalListPage() {
   const [search, setSearch] = useState("");
   const [buFilter, setBuFilter] = useState<string | null>(null);
+  const [stageFilter, setStageFilter] = useState<number | null>(null);
+  const [prTypeFilter, setPrTypeFilter] = useState<string | null>(null);
   const [sort, setSort] = useState("date-desc");
   const [showOnlyActionable, setShowOnlyActionable] = useState(false);
   const [showUserPanel, setShowUserPanel] = useState(true);
+  const [showFilters, setShowFilters] = useState(true);
 
 
 
   const [currentUserId, setCurrentUserId] = useState("user-hod");
   const currentUser = mockUsers.find(user => user.id === currentUserId) || mockUsers[0];
+
+  // Count active filters
+  const getActiveFilterCount = () => {
+    let count = 0;
+    if (buFilter) count++;
+    if (stageFilter !== null) count++;
+    if (prTypeFilter) count++;
+    if (sort !== "date-desc") count++; // Count non-default sort as filter
+    return count;
+  };
 
   let filtered = prApprovals.filter(pr => {
     const matchesSearch =
@@ -165,6 +187,8 @@ export default function PrApprovalListPage() {
       pr.requestor.toLowerCase().includes(search.toLowerCase());
     
     const matchesBU = !buFilter || pr.business_unit === buFilter;
+    const matchesStage = stageFilter === null || getCurrentWorkflowStage(pr) === stageFilter;
+    const matchesPrType = !prTypeFilter || pr.prType === prTypeFilter;
 
     let matchesWorkflow = true;
     const hasBusinessUnitAccess = currentUser.businessUnits.includes(pr.business_unit);
@@ -179,7 +203,7 @@ export default function PrApprovalListPage() {
       matchesWorkflow = canUserView && hasBusinessUnitAccess;
     }
 
-    return matchesSearch && matchesBU && matchesWorkflow;
+    return matchesSearch && matchesBU && matchesStage && matchesPrType && matchesWorkflow;
   });
   if (sort === "date-desc") filtered = filtered.sort((a, b) => b.date.localeCompare(a.date));
   if (sort === "date-asc") filtered = filtered.sort((a, b) => a.date.localeCompare(b.date));
@@ -211,17 +235,54 @@ export default function PrApprovalListPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
-          <select
-            className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
-            value={sort}
-            onChange={e => setSort(e.target.value)}
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-1 px-3 py-2 text-sm border rounded ${showFilters ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-600 text-blue-700 dark:text-blue-300' : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300'}`}
           >
-                            <option value="date-desc">Date ↓</option>
-                <option value="date-asc">Date ↑</option>
-                          <option value="status">Stage</option>
-            <option value="bu">Business Unit</option>
-          </select>
+            <Filter size={16} />
+            {getActiveFilterCount() > 0 && (
+              <span className="bg-blue-600 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
+                {getActiveFilterCount()}
+              </span>
+            )}
+          </button>
         </div>
+
+        {showFilters && (
+          <div className="flex gap-2 mb-2 items-center">
+            <select
+              className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+              value={sort}
+              onChange={e => setSort(e.target.value)}
+            >
+                              <option value="date-desc">Date ↓</option>
+                  <option value="date-asc">Date ↑</option>
+                            <option value="status">Stage</option>
+              <option value="bu">Business Unit</option>
+            </select>
+            <select
+              className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+              value={stageFilter === null ? "" : stageFilter.toString()}
+              onChange={e => setStageFilter(e.target.value === "" ? null : parseInt(e.target.value))}
+            >
+              <option value="">All Stages</option>
+              {fullWorkflowStagesForDisplay.map(stage => (
+                <option key={stage.id} value={stage.id.toString()}>
+                  {stage.label}
+                </option>
+              ))}
+            </select>
+            <select
+              className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+              value={prTypeFilter || ""}
+              onChange={e => setPrTypeFilter(e.target.value === "" ? null : e.target.value)}
+            >
+              <option value="">All Types</option>
+              <option value="General">General</option>
+              <option value="Market List">Market List</option>
+            </select>
+          </div>
+        )}
 
 
       </div>
@@ -318,9 +379,9 @@ export default function PrApprovalListPage() {
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-base text-gray-900 dark:text-gray-100">{pr.number}</span>
-                      {isActionable && (
-                        <span className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 text-xs px-2 py-0.5 rounded-full font-medium">
-                          Action Required
+                      {pr.prType && (
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${pr.prType === 'Market List' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200'}`}>
+                          {pr.prType}
                         </span>
                       )}
                     </div>

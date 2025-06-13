@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BusinessUnitLabel } from "@/components/ui/business-unit-label";
 import { CheckCircle, Package, FileText, Home } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 
 interface GRNConfirmationData {
   grnId: string;
@@ -16,7 +16,7 @@ interface GRNConfirmationData {
   businessUnit: string;
 }
 
-export default function GRNConfirmationPage() {
+function GRNConfirmationPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [grnData, setGrnData] = useState<GRNConfirmationData | null>(null);
@@ -206,4 +206,12 @@ export default function GRNConfirmationPage() {
       </div>
     </div>
   );
-} 
+}
+
+export default function GRNConfirmationPageWithSuspense() {
+  return (
+    <Suspense fallback={<div className="p-4">Loading confirmation...</div>}>
+      <GRNConfirmationPage />
+    </Suspense>
+  );
+}

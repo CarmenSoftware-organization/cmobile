@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -91,7 +91,7 @@ function hasStoreLocation(obj: unknown): obj is { storeLocation: string } {
   return typeof obj === 'object' && obj !== null && 'storeLocation' in obj && typeof (obj as { storeLocation: unknown }).storeLocation === 'string';
 }
 
-export default function GrnDetailPage() {
+function GrnDetailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -1190,4 +1190,12 @@ export default function GrnDetailPage() {
       )}
     </div>
   );
-} 
+}
+
+export default function GrnDetailPageWithSuspense() {
+  return (
+    <Suspense fallback={<div className="p-4">Loading GRN details...</div>}>
+      <GrnDetailPage />
+    </Suspense>
+  );
+}

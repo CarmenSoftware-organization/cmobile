@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Search, Filter, Calendar, MapPin, DollarSign, FileText, Clock } from "lucide-react";
 import { mockGRNs, type MockGRN } from "@/data/mockGRNData";
 
-export default function DraftGRNsPage() {
+function DraftGRNsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedBusinessUnitFromUrl = searchParams.get('bu');
@@ -261,4 +261,12 @@ export default function DraftGRNsPage() {
       )}
     </div>
   );
-} 
+}
+
+export default function DraftGRNsPageWithSuspense() {
+  return (
+    <Suspense fallback={<div className="p-4">Loading draft GRNs...</div>}>
+      <DraftGRNsPage />
+    </Suspense>
+  );
+}

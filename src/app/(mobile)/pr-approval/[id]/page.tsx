@@ -1131,7 +1131,6 @@ export default function PrApprovalDetailPage() {
                       <th className="px-2 py-1 text-left text-gray-900 dark:text-gray-100">Qty</th>
                       <th className="px-2 py-1 text-left text-gray-900 dark:text-gray-100">Min</th>
                       <th className="px-2 py-1 text-left text-gray-900 dark:text-gray-100">Max</th>
-                      <th className="px-2 py-1 text-left text-gray-900 dark:text-gray-100">Last Counted</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1141,9 +1140,16 @@ export default function PrApprovalDetailPage() {
                         <td className="px-2 py-1 text-gray-900 dark:text-gray-100">{loc.qty_available}</td>
                         <td className="px-2 py-1 text-gray-900 dark:text-gray-100">{loc.min_qty}</td>
                         <td className="px-2 py-1 text-gray-900 dark:text-gray-100">{loc.max_qty}</td>
-                        <td className="px-2 py-1 text-gray-900 dark:text-gray-100">{loc.last_counted}</td>
                       </tr>
                     ))}
+                    <tr className="border-t-2 border-gray-400 dark:border-gray-500 bg-gray-50 dark:bg-gray-600 font-semibold">
+                      <td className="px-2 py-1 text-gray-900 dark:text-gray-100">Total on Hand</td>
+                      <td className="px-2 py-1 text-gray-900 dark:text-gray-100">
+                        {onHandItem.onHandData?.reduce((sum, loc) => sum + (loc.qty_available || 0), 0) || 0}
+                      </td>
+                      <td className="px-2 py-1 text-gray-900 dark:text-gray-100">-</td>
+                      <td className="px-2 py-1 text-gray-900 dark:text-gray-100">-</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>

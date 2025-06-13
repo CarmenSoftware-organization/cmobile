@@ -118,6 +118,7 @@ export interface PR {
   business_unit: string;
   role: string; // Required role for current stage
   lastAction?: string; // Optional last action for return for review
+  prType?: string; // PR Type: Market List or General
 }
 
 // Helper Functions for Workflow Management

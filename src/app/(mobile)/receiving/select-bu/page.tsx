@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Building2, ChevronRight } from "lucide-react";
@@ -65,7 +65,7 @@ const businessUnits = [
   }
 ];
 
-export default function SelectBusinessUnitPage() {
+function SelectBusinessUnitPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
@@ -194,4 +194,12 @@ export default function SelectBusinessUnitPage() {
       </div>
     </div>
   );
-} 
+}
+
+export default function SelectBusinessUnitPageWithSuspense() {
+  return (
+    <Suspense fallback={<div className="p-4">Loading business units...</div>}>
+      <SelectBusinessUnitPage />
+    </Suspense>
+  );
+}

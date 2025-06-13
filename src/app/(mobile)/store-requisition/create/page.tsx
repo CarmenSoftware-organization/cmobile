@@ -456,7 +456,7 @@ export default function CreateStoreRequisitionPage() {
                           onChange={(e) => {
                             const val = e.target.value;
                             // Allow empty string for clearing, or parse to number
-                            setNewItem(prev => ({ ...prev, requestedQty: val === '' ? '' : parseFloat(val) || 1 }));
+                            setNewItem(prev => ({ ...prev, requestedQty: val === '' ? 1 : parseFloat(val) || 1 }));
                           }}
                           className="w-full h-9 px-2 py-1.5 border-t border-b border-input text-center text-sm focus:ring-0 focus:outline-none"
                           placeholder="1"
