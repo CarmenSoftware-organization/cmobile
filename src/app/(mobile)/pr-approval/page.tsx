@@ -27,8 +27,8 @@ const prApprovals: PR[] = [
     date: "2024-06-01",
     value: "$1,200.00",
     business_unit: "Grand Hotel Singapore",
-    role: "HOD",
-    lastAction: "Returned for Review by Finance Team (2024-06-02)",
+    role: "HOD", // Stage 1 requires HOD approval
+    lastAction: "Submitted for HOD Review (2024-06-01)",
     prType: "General"
   },
   {
@@ -41,7 +41,7 @@ const prApprovals: PR[] = [
     date: "2024-06-02",
     value: "$800.00",
     business_unit: "Business Hotel Jakarta",
-    role: "Finance",
+    role: "Purchasing", // Stage 4 completed by Purchasing (last approver)
     prType: "Market List"
   },
   {
@@ -54,8 +54,8 @@ const prApprovals: PR[] = [
     date: "2024-06-03",
     value: "$600.00",
     business_unit: "Boutique Hotel Bangkok",
-    role: "Finance",
-    lastAction: "Returned for Review by HOD (2024-06-04)",
+    role: "Finance", // Stage 2 requires Finance approval
+    lastAction: "Approved by HOD, submitted for Finance Review (2024-06-03)",
     prType: "General"
   },
   {
@@ -68,7 +68,7 @@ const prApprovals: PR[] = [
     date: "2024-06-09",
     value: "$2,500.00",
     business_unit: "Grand Hotel Singapore",
-    role: "Purchasing",
+    role: "Purchasing", // Stage 3 requires Purchasing approval
     prType: "Market List"
   },
   {
@@ -81,7 +81,7 @@ const prApprovals: PR[] = [
     date: "2024-06-04",
     value: "$900.00",
     business_unit: "Grand Hotel Singapore",
-    role: "Finance",
+    role: "HOD", // Last role that handled before cancellation
     prType: "General"
   },
   {
@@ -94,7 +94,7 @@ const prApprovals: PR[] = [
     date: "2024-06-05",
     value: "$450.00",
     business_unit: "Business Hotel Jakarta",
-    role: "Requestor",
+    role: "Requestor", // Stage 0 is owned by Requestor
     prType: "Market List"
   },
   {
@@ -107,7 +107,7 @@ const prApprovals: PR[] = [
     date: "2024-06-06",
     value: "$1,100.00",
     business_unit: "Boutique Hotel Bangkok",
-    role: "Finance",
+    role: "Finance", // Rejected by Finance
     prType: "General"
   },
   {
@@ -120,7 +120,7 @@ const prApprovals: PR[] = [
     date: "2024-06-07",
     value: "$2,000.00",
     business_unit: "Grand Hotel Singapore",
-    role: "HOD",
+    role: "HOD", // Stage 1 requires HOD approval
     prType: "Market List"
   },
   {
@@ -133,9 +133,50 @@ const prApprovals: PR[] = [
     date: "2024-06-08",
     value: "$700.00",
     business_unit: "Business Hotel Jakarta",
-    role: "Finance",
+    role: "Purchasing", // Stage 4 completed by Purchasing (last approver)
     prType: "General"
   },
+  // Additional PRs for better testing coverage
+  {
+    id: 10,
+    number: "PR-2010",
+    status: "Returned",
+    workflowStage: 1,
+    requestor: "John Smith",
+    department: "Kitchen",
+    date: "2024-06-10",
+    value: "$350.00",
+    business_unit: "Grand Hotel Singapore", 
+    role: "HOD", // Returned to HOD for changes
+    lastAction: "Returned by Finance for additional information (2024-06-10)",
+    prType: "General"
+  },
+  {
+    id: 11,
+    number: "PR-2011",
+    status: "In-progress",
+    workflowStage: 2,
+    requestor: "Sarah Wilson",
+    department: "Housekeeping",
+    date: "2024-06-11",
+    value: "$750.00",
+    business_unit: "Business Hotel Jakarta",
+    role: "Finance", // Stage 2 requires Finance approval
+    prType: "Market List"
+  },
+  {
+    id: 12,
+    number: "PR-2012",
+    status: "Completed",
+    workflowStage: 4,
+    requestor: "Mike Johnson",
+    department: "Maintenance",
+    date: "2024-06-12",
+    value: "$950.00",
+    business_unit: "Boutique Hotel Bangkok",
+    role: "Purchasing", // Completed by Purchasing
+    prType: "General"
+  }
 ];
 
 const allBUs = [
@@ -164,7 +205,7 @@ export default function PrApprovalListPage() {
   const [sort, setSort] = useState("date-desc");
   const [showOnlyActionable, setShowOnlyActionable] = useState(false);
   const [showUserPanel, setShowUserPanel] = useState(true);
-  const [showFilters, setShowFilters] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
 
 
 
@@ -195,7 +236,12 @@ export default function PrApprovalListPage() {
     const canUserAct = canUserActOnPR(pr, currentUser.role);
     const canUserView = canUserViewPR(pr, currentUser.role);
     
-    if (showOnlyActionable) {
+    // Special filtering for Requestor role - only show Draft PRs waiting for submission
+    if (currentUser.role === "Requestor") {
+      matchesWorkflow = hasBusinessUnitAccess && 
+                       pr.status === "Draft" && 
+                       getCurrentWorkflowStage(pr) === 0;
+    } else if (showOnlyActionable) {
       matchesWorkflow = (canUserAct && hasBusinessUnitAccess) || 
                        (getCurrentWorkflowStage(pr) >= 3 && hasBusinessUnitAccess) ||
                        (getCurrentWorkflowStage(pr) < 0 && hasBusinessUnitAccess); 
@@ -350,7 +396,21 @@ export default function PrApprovalListPage() {
               </div>
               <select
                 value={currentUserId}
-                onChange={(e) => setCurrentUserId(e.target.value)}
+                onChange={(e) => {
+                  setCurrentUserId(e.target.value);
+                  // Auto-filter to show only In-progress documents for the user's role
+                  const newUser = mockUsers.find(user => user.id === e.target.value);
+                  if (newUser) {
+                    // Set stage filter based on user role
+                    if (newUser.role === "HOD") setStageFilter(1);
+                    else if (newUser.role === "Finance") setStageFilter(2);
+                    else if (newUser.role === "Purchasing") setStageFilter(3);
+                    else setStageFilter(null);
+                    
+                    // Show only actionable items
+                    setShowOnlyActionable(true);
+                  }
+                }}
                 className="w-full text-xs border border-blue-300 dark:border-blue-600 rounded px-2 py-1 bg-white dark:bg-blue-800 text-blue-900 dark:text-blue-100"
               >
                 {mockUsers.map(user => (
