@@ -326,28 +326,10 @@ export default function StoreRequisitionDetailPage() {
     setRequisition({ ...requisition, items: updatedItems });
   };
 
-  const updateApprovedUnit = (itemId: number, unit: string) => {
-    const updatedItems = requisition.items.map(item => 
-      item.id === itemId 
-        ? { ...item, approvedUnit: unit, isEdited: true }
-        : item
-    );
-    setRequisition({ ...requisition, items: updatedItems });
-  };
-
   const updateIssuedQuantity = (itemId: number, quantity: string) => {
     const updatedItems = requisition.items.map(item => 
       item.id === itemId 
         ? { ...item, issuedQty: parseFloat(quantity) || 0, isEdited: true }
-        : item
-    );
-    setRequisition({ ...requisition, items: updatedItems });
-  };
-
-  const updateIssuedUnit = (itemId: number, unit: string) => {
-    const updatedItems = requisition.items.map(item => 
-      item.id === itemId 
-        ? { ...item, issuedUnit: unit, isEdited: true }
         : item
     );
     setRequisition({ ...requisition, items: updatedItems });
@@ -575,15 +557,9 @@ export default function StoreRequisitionDetailPage() {
                           min="0"
                           step="0.1"
                         />
-                        <select
-                          className="w-12 h-8 text-xs border border-gray-300 dark:border-gray-600 rounded-md px-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                          value={item.approvedUnit || item.unit}
-                          onChange={(e) => updateApprovedUnit(item.id, e.target.value)}
-                        >
-                          {item.unitOptions?.map(unitOption => (
-                            <option key={unitOption} value={unitOption}>{unitOption}</option>
-                          )) || <option value={item.unit}>{item.unit}</option>}
-                        </select>
+                        <span className="w-12 h-8 text-xs flex items-center px-1 text-gray-900 dark:text-gray-100">
+                          {item.approvedUnit || item.unit}
+                        </span>
                       </div>
                     </div>
                     <div>
@@ -597,15 +573,9 @@ export default function StoreRequisitionDetailPage() {
                           min="0"
                           step="0.1"
                         />
-                        <select
-                          className="w-12 h-8 text-xs border border-gray-300 dark:border-gray-600 rounded-md px-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                          value={item.issuedUnit || item.unit}
-                          onChange={(e) => updateIssuedUnit(item.id, e.target.value)}
-                        >
-                          {item.unitOptions?.map(unitOption => (
-                            <option key={unitOption} value={unitOption}>{unitOption}</option>
-                          )) || <option value={item.unit}>{item.unit}</option>}
-                        </select>
+                        <span className="w-12 h-8 text-xs flex items-center px-1 text-gray-900 dark:text-gray-100">
+                          {item.issuedUnit || item.unit}
+                        </span>
                       </div>
                     </div>
                   </div>
