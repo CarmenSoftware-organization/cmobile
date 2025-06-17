@@ -524,7 +524,6 @@ export default function PrApprovalListPage() {
           </div>
         ) : (
           filtered.map((pr) => {
-            const isActionable = canUserActOnPR(pr, currentUser.role);
             const currentPrStageId = getCurrentWorkflowStage(pr);
 
             // Enhanced stage display logic: show previous, current, and next stages
@@ -553,7 +552,7 @@ export default function PrApprovalListPage() {
 
             return (
               <Link key={pr.id} href={`/pr-approval/${pr.id}`}>
-                <Card className={`p-3 flex flex-col gap-1 mb-2 cursor-pointer active:scale-[0.98] transition-transform bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 ${isActionable ? 'ring-2 ring-blue-500 dark:ring-blue-400 ring-opacity-50' : ''}`}>
+                <Card className="p-3 flex flex-col gap-1 mb-2 cursor-pointer active:scale-[0.98] transition-transform bg-white dark:bg-gray-800 border-0 shadow-md">
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-base text-gray-900 dark:text-gray-100">{pr.number}</span>
@@ -562,6 +561,7 @@ export default function PrApprovalListPage() {
                           {pr.prType}
                         </span>
                       )}
+
                     </div>
                     <span className="text-sm text-gray-600 dark:text-gray-400">{pr.business_unit}</span>
                   </div>
@@ -614,28 +614,27 @@ export default function PrApprovalListPage() {
                     </div>
                   )}
 
-                  <div className="flex items-center gap-2 text-xs mb-1">
-                    <span className="text-gray-600 dark:text-gray-400">{pr.requestor}</span>
-                    <span className="text-gray-600 dark:text-gray-400">{pr.department}</span>
-                    <span className="text-gray-600 dark:text-gray-400">{pr.date}</span>
-                    <div className="flex items-center gap-1">
-                      <span className="text-gray-900 dark:text-gray-100 font-medium">{pr.value}</span>
-                      {pr.currency !== pr.baseCurrency && (
-                        <span className="text-xs bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 px-1 rounded">
-                          ≈ {pr.baseValue}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Show Last Action for any PR that has one */}
-                  {pr.lastAction && (
-                    <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded">
-                      <div className="text-xs text-gray-700 dark:text-gray-300">
-                        <span className="font-medium">Last Action:</span> {pr.lastAction}
+                  <div className="text-xs mb-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-600 dark:text-gray-400">{pr.requestor}</span>
+                      <span className="text-gray-600 dark:text-gray-400">{pr.department}</span>
+                      <span className="text-gray-600 dark:text-gray-400">{pr.date}</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-900 dark:text-gray-100 font-medium">{pr.value}</span>
                       </div>
                     </div>
-                  )}
+                  </div>
+                  
+                  <div className="flex justify-between items-end">
+                    <div></div>
+                    {pr.lastAction && pr.lastAction.toLowerCase().includes('return') && (
+                      <span className="text-xs px-2 py-0.5 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-700 rounded">
+                        Return for review
+                      </span>
+                    )}
+                  </div>
+
+
 
                 </Card>
               </Link>

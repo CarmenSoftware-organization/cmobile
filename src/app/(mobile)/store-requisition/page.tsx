@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { useState } from "react";
-import { ShoppingCart, Calendar, Package, Filter, X } from "lucide-react";
+import { Filter, X } from "lucide-react";
 // Import store requisition workflow configuration
 import {
   getCurrentSRWorkflowStage,
@@ -109,7 +109,7 @@ const storeRequisitions: StoreRequisition[] = [
     marketSegment: "Rooms",
     event: null,
     notes: "Regular room supplies",
-    lastAction: "Approved by Department, submitted for Store Review (2024-06-06)"
+    lastAction: "Return for additional justification (2024-06-06)"
   },
   {
     id: 7,
@@ -410,12 +410,12 @@ export default function StoreRequisitionPage() {
 
             return (
               <Link key={sr.id} href={`/store-requisition/${sr.id}`}>
-                <Card className="p-3 flex flex-col gap-1 mb-2 cursor-pointer active:scale-[0.98] transition-transform bg-card dark:bg-card">
+                <Card className="p-3 flex flex-col gap-1 mb-2 cursor-pointer active:scale-[0.98] transition-transform bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-3">
-                      <span className="font-bold text-base">{sr.number}</span>
-                      <span className="text-sm text-muted-foreground">{sr.business_unit}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-base text-gray-900 dark:text-gray-100">{sr.number}</span>
                     </div>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">{sr.business_unit}</span>
                   </div>
                   
                   {stagesToDisplayInStepper.length > 0 && (
@@ -465,57 +465,24 @@ export default function StoreRequisitionPage() {
                       </div>
                     </div>
                   )}
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs mb-1">
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <ShoppingCart size={12} />
-                      <span>{sr.department}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <Calendar size={12} />
-                      <span>{new Date(sr.date).toLocaleDateString()}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <Package size={12} />
-                      <span>{sr.itemCount} items</span>
-                    </div>
-                  </div>
-                  {sr.notes && (
-                    <div className="text-xs text-muted-foreground mb-1 line-clamp-1">
-                      <span className="font-medium">Notes:</span> {sr.notes}
-                    </div>
-                  )}
-                  <div className="flex flex-wrap items-center gap-2 text-xs mt-1">
-                    <span className="text-muted-foreground">Requester: {sr.requester}</span>
-                  </div>
-                  {/* Business Dimensions */}
-                  {(sr.jobCode || sr.marketSegment || sr.event) && (
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {sr.jobCode && (
-                        <span className="text-xs bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 px-1.5 py-0.5 rounded-full">
-                          {sr.jobCode}
-                        </span>
-                      )}
-                      {sr.marketSegment && (
-                        <span className="text-xs bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300 px-1.5 py-0.5 rounded-full">
-                          {sr.marketSegment}
-                        </span>
-                      )}
-                      {sr.event && (
-                        <span className="text-xs bg-pink-100 text-pink-800 dark:bg-pink-950 dark:text-pink-300 px-1.5 py-0.5 rounded-full">
-                          {sr.event}
-                        </span>
-                      )}
-                    </div>
-                  )}
 
-                  {/* Show Last Action for any SR that has one */}
-                  {sr.lastAction && (
-                    <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded">
-                      <div className="text-xs text-gray-700 dark:text-gray-300">
-                        <span className="font-medium">Last Action:</span> {sr.lastAction}
+                  <div className="text-xs mb-1">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-600 dark:text-gray-400">{sr.requester}</span>
+                        <span className="text-gray-600 dark:text-gray-400">{sr.department}</span>
+                        <span className="text-gray-600 dark:text-gray-400">{sr.date}</span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-gray-900 dark:text-gray-100 font-medium">{sr.itemCount} items</span>
+                        </div>
                       </div>
+                      {sr.lastAction && sr.lastAction.toLowerCase().includes('return') && (
+                        <span className="text-xs px-2 py-0.5 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-700 rounded">
+                          Return for review
+                        </span>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </Card>
               </Link>
             );

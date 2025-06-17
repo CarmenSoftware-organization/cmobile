@@ -176,12 +176,55 @@ export function isValidStatusForStage(stage: number, status: string): boolean {
   return validStatuses ? validStatuses.includes(status) : false;
 }
 
-export function getWorkflowSteps() {
-  return workflowConfig.stages.slice(0, -1).map(stage => ({
-    key: stage.name,
-    label: stage.label,
-    id: stage.id
-  }));
+export function getWorkflowSteps(currentStage?: number) {
+  // If no current stage provided, return all steps (original behavior)
+  if (currentStage === undefined) {
+    return workflowConfig.stages.slice(0, -1).map(stage => ({
+      key: stage.name,
+      label: stage.label,
+      id: stage.id
+    }));
+  }
+  
+  // Return previous, current, and next stages only
+  const allStages = workflowConfig.stages.slice(0, -1); // Exclude terminal stages
+  const steps: Array<{key: string, label: string, id: number}> = [];
+  
+  // Add previous stage if exists
+  if (currentStage > 0) {
+    const prevStage = allStages.find(s => s.id === currentStage - 1);
+    if (prevStage) {
+      steps.push({
+        key: prevStage.name,
+        label: prevStage.label,
+        id: prevStage.id
+      });
+    }
+  }
+  
+  // Add current stage
+  const current = allStages.find(s => s.id === currentStage);
+  if (current) {
+    steps.push({
+      key: current.name,
+      label: current.label,
+      id: current.id
+    });
+  }
+  
+  // Add next stage if exists
+  if (currentStage < allStages.length - 1) {
+    const nextStage = allStages.find(s => s.id === currentStage + 1);
+    if (nextStage) {
+      steps.push({
+        key: nextStage.name,
+        label: nextStage.label,
+        id: nextStage.id
+      });
+    }
+  }
+  
+  return steps;
 }
 
 export function getNextWorkflowStage(currentStage: number): number {

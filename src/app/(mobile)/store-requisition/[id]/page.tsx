@@ -2,9 +2,11 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-import { X, ChevronRight, ChevronLeft } from "lucide-react";
+import { X, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Define types for items and inventory data
 interface Item {
@@ -64,7 +66,7 @@ export default function StoreRequisitionDetailPage() {
   // New state for workflow logic
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
-  const [, setUpdateTrigger] = useState(0); // Force re-render trigger
+
   const [selectedItems, setSelectedItems] = useState<number[]>([]); // For bulk actions
   
   // Mock data for the store requisition
@@ -74,10 +76,12 @@ export default function StoreRequisitionDetailPage() {
     status: "In-progress",
     requestDate: "2025-05-20",
     requestingDepartment: "F&B",
+    requestingLocation: "Main Kitchen",
     sourceLocation: "Main Store",
     requestor: "Michelle Tan",
     businessUnit: "Grand Hotel Singapore",
     value: "$1,200.00",
+    lastAction: "Return for additional justification (2024-06-06)",
     items: [
       {
         id: 1,
@@ -295,88 +299,7 @@ export default function StoreRequisitionDetailPage() {
     setSelectedItem(null); // Close any open dialogs
   };
 
-  // Function to update approved quantity
-  const updateApprovedQuantity = (itemId: number, quantity: string) => {
-    const updatedItems = requisition.items.map(item => 
-      item.id === itemId 
-        ? {
-            ...item,
-            status: 'Pending' as const,
-            approvedQty: parseFloat(quantity) || 0,
-            isEdited: true
-          }
-        : item
-    );
-    setRequisition({ ...requisition, items: updatedItems });
-    setUpdateTrigger(prev => prev + 1); // Force re-render
-  };
 
-  // Function to update approved unit
-  const updateApprovedUnit = (itemId: number, unit: string) => {
-    const updatedItems = requisition.items.map(item => 
-      item.id === itemId 
-        ? {
-            ...item,
-            status: 'Pending' as const,
-            approvedUnit: unit,
-            isEdited: true
-          }
-        : item
-    );
-    setRequisition({ ...requisition, items: updatedItems });
-    setUpdateTrigger(prev => prev + 1); // Force re-render
-  };
-
-  // Function to update issued quantity
-  const updateIssuedQuantity = (itemId: number, quantity: string) => {
-    const updatedItems = requisition.items.map(item => 
-      item.id === itemId 
-        ? {
-            ...item,
-            status: 'Pending' as const,
-            issuedQty: parseFloat(quantity) || 0,
-            isEdited: true
-          }
-        : item
-    );
-    setRequisition({ ...requisition, items: updatedItems });
-    setUpdateTrigger(prev => prev + 1); // Force re-render
-  };
-
-  // Function to update issued unit
-  const updateIssuedUnit = (itemId: number, unit: string) => {
-    const updatedItems = requisition.items.map(item => 
-      item.id === itemId 
-        ? {
-            ...item,
-            status: 'Pending' as const,
-            issuedUnit: unit,
-            isEdited: true
-          }
-        : item
-    );
-    setRequisition({ ...requisition, items: updatedItems });
-    setUpdateTrigger(prev => prev + 1); // Force re-render
-  };
-
-  // Function to update business dimensions
-  const updateBusinessDimension = (itemId: number, field: 'projectCode' | 'marketSegment' | 'event', value: string) => {
-    const updatedItems = requisition.items.map(item => 
-      item.id === itemId 
-        ? {
-            ...item,
-            status: 'Pending' as const,
-            businessDimensions: {
-              ...item.businessDimensions,
-              [field]: value
-            },
-            isEdited: true
-          }
-        : item
-    );
-    setRequisition({ ...requisition, items: updatedItems });
-    setUpdateTrigger(prev => prev + 1); // Force re-render
-  };
 
   // Function to set item status
   const setItemStatus = (itemId: number, status: "Approved" | "Rejected" | "Review") => {
@@ -391,6 +314,43 @@ export default function StoreRequisitionDetailPage() {
     );
     setRequisition({ ...requisition, items: updatedItems });
     updateSrStatus(updatedItems);
+  };
+
+  // Functions to update approved and issued quantities and units
+  const updateApprovedQuantity = (itemId: number, quantity: string) => {
+    const updatedItems = requisition.items.map(item => 
+      item.id === itemId 
+        ? { ...item, approvedQty: parseFloat(quantity) || 0, isEdited: true }
+        : item
+    );
+    setRequisition({ ...requisition, items: updatedItems });
+  };
+
+  const updateApprovedUnit = (itemId: number, unit: string) => {
+    const updatedItems = requisition.items.map(item => 
+      item.id === itemId 
+        ? { ...item, approvedUnit: unit, isEdited: true }
+        : item
+    );
+    setRequisition({ ...requisition, items: updatedItems });
+  };
+
+  const updateIssuedQuantity = (itemId: number, quantity: string) => {
+    const updatedItems = requisition.items.map(item => 
+      item.id === itemId 
+        ? { ...item, issuedQty: parseFloat(quantity) || 0, isEdited: true }
+        : item
+    );
+    setRequisition({ ...requisition, items: updatedItems });
+  };
+
+  const updateIssuedUnit = (itemId: number, unit: string) => {
+    const updatedItems = requisition.items.map(item => 
+      item.id === itemId 
+        ? { ...item, issuedUnit: unit, isEdited: true }
+        : item
+    );
+    setRequisition({ ...requisition, items: updatedItems });
   };
 
   // UseEffect to initialize original state
@@ -426,445 +386,260 @@ export default function StoreRequisitionDetailPage() {
     return 0;
   }
 
-  const statusColors: Record<string, string> = {
-    Draft: "bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600",
-    "In-progress": "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-600",
-    Complete: "bg-green-100 text-green-800 border-green-300 dark:bg-green-950 dark:text-green-300 dark:border-green-600",
-    Issued: "bg-green-200 text-green-900 border-green-400 dark:bg-green-900 dark:text-green-200 dark:border-green-700",
-    Rejected: "bg-red-100 text-red-800 border-red-300 dark:bg-red-950 dark:text-red-300 dark:border-red-600",
-    Cancel: "bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-600",
-  };
+
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Workflow Stepper */}
-      <div className="flex flex-col gap-1 p-4 pb-0">
-        <span className="text-xs text-muted-foreground mb-1">Stage:</span>
-        <div className="flex items-center gap-1">
-          {workflowSteps.map((step, idx) => {
-            const current = getCurrentStep(requisition.status as SRStatus);
-            const isActive = idx === current;
-            const isDone = idx < current;
-            return (
-              <div key={step.key} className="flex items-center">
-                <div className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold border-2 ${isActive ? "bg-blue-600 dark:bg-blue-500 text-white border-blue-600 dark:border-blue-500" : isDone ? "bg-green-500 dark:bg-green-600 text-white border-green-500 dark:border-green-600" : "bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-500"}`}>{idx+1}</div>
-                <span className={`ml-1 mr-2 text-xs ${isActive ? "font-semibold text-blue-700 dark:text-blue-400" : isDone ? "text-green-700 dark:text-green-400" : "text-gray-400 dark:text-gray-500"}`}>{step.label}</span>
-                {idx < workflowSteps.length - 1 && <span className="w-4 h-0.5 bg-gray-300 dark:bg-gray-600 mx-1" />}
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+      {/* SR Header Card */}
+      <div className="bg-gray-50 dark:bg-gray-900 px-4 pt-4">
+        <Card className="mb-4 p-4 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm bg-white dark:bg-gray-800">
+          <div className="mb-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="p-1 h-8 w-8" 
+                  onClick={() => router.back()}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <span className="font-bold text-base text-gray-900 dark:text-gray-100">{requisition.srNumber}</span>
               </div>
-            );
-          })}
-        </div>
-      </div>
+              <div className="flex flex-col items-end gap-1">
+                <span className="text-blue-700 dark:text-blue-400 text-sm font-semibold">{requisition.businessUnit}</span>
+              </div>
+            </div>
+            
+            {/* Workflow Stepper */}
+            <div className="flex items-center gap-1 overflow-x-auto mt-3">
+              {(() => {
+                const current = getCurrentStep(requisition.status as SRStatus);
+                const visibleSteps = [];
+                
+                // Show previous, current, and next steps (3 total)
+                const startIdx = Math.max(0, current - 1);
+                const endIdx = Math.min(workflowSteps.length - 1, startIdx + 2);
+                
+                for (let idx = startIdx; idx <= endIdx; idx++) {
+                  const step = workflowSteps[idx];
+                  const isActive = idx === current;
+                  const isDone = idx < current;
+                  
+                  visibleSteps.push(
+                    <div key={step.key} className="flex items-center whitespace-nowrap">
+                      <div className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold border-2 ${
+                        isActive ? "bg-blue-600 dark:bg-blue-500 text-white border-blue-600 dark:border-blue-500" : 
+                        isDone ? "bg-green-500 dark:bg-green-600 text-white border-green-500 dark:border-green-600" : 
+                        "bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-500"
+                      }`}>
+                        {idx + 1}
+                      </div>
+                      <span className={`ml-1 mr-2 text-xs ${
+                        isActive ? "font-semibold text-blue-700 dark:text-blue-400" : 
+                        isDone ? "text-green-700 dark:text-green-400" : 
+                        "text-gray-400 dark:text-gray-500"
+                      }`}>
+                        {step.label}
+                      </span>
+                      {idx < endIdx && (
+                        <span className={`w-4 h-0.5 mx-1 ${
+                          isDone ? "bg-green-500 dark:bg-green-600" : "bg-gray-300 dark:bg-gray-600"
+                        }`} />
+                      )}
+                    </div>
+                  );
+                }
+                
+                return visibleSteps;
+              })()}
+            </div>
+            <div className="flex flex-row justify-between gap-2 mt-2 text-xs text-gray-600 dark:text-gray-400">
+              <div><span className="font-medium">Requestor:</span> {requisition.requestor}</div>
+              <div><span className="font-medium">Department:</span> {requisition.requestingDepartment}</div>
+            </div>
+            <div className="flex flex-row justify-between gap-2 mt-1 text-xs text-gray-600 dark:text-gray-400">
+              <div><span className="font-medium">Date:</span> {requisition.requestDate}</div>
+              <div><span className="font-medium">Value:</span> {requisition.value}</div>
+            </div>
+            <div className="flex flex-row gap-2 mt-1 text-xs text-gray-600 dark:text-gray-400">
+              <div className="flex items-center gap-2">
+                <span><span className="font-medium">Store:</span> {requisition.sourceLocation}</span>
+                <span>→</span>
+                <span><span className="font-medium">Request from:</span> {requisition.requestingLocation}</span>
+              </div>
+            </div>
 
-      {/* PR/SR Info Section */}
-      <div className="p-5 bg-white dark:bg-gray-900 border-b border-border">
-        <div className="flex justify-between items-start">
-          <div className="flex items-center gap-2">
-            <button onClick={() => router.back()} className="p-1 mr-1 text-blue-600 hover:text-blue-800">
-              <ChevronLeft size={24} />
-            </button>
-            <h1 className="text-2xl font-bold">{requisition.srNumber}</h1>
-          </div>
-          <div className="flex flex-col items-end gap-1">
-            <span className="text-xs text-muted-foreground">Status:</span>
-            <Badge className={`border text-xs ${statusColors[srStatus] || "bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600"}`}>{srStatus}</Badge>
-          </div>
-        </div>
-        
-        <div className="text-blue-600 dark:text-blue-400 text-base font-medium mt-2">
-          BU: {requisition.businessUnit}
-        </div>
-        
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-4">
-          <div>
-            <div className="text-gray-500 dark:text-gray-400 text-sm">Requestor:</div>
-            <div className="text-base">{requisition.requestor}</div>
-          </div>
-          <div>
-            <div className="text-gray-500 dark:text-gray-400 text-sm">Department:</div>
-            <div className="text-base">{requisition.requestingDepartment}</div>
-          </div>
-          <div>
-            <div className="text-gray-500 dark:text-gray-400 text-sm">Date:</div>
-            <div className="text-base">{requisition.requestDate}</div>
-          </div>
-          <div>
-            <div className="text-gray-500 dark:text-gray-400 text-sm">Value:</div>
-            <div className="text-base">{requisition.value}</div>
-          </div>
-        </div>
-        
-        {/* Document Status Section */}
-        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-gray-600 dark:text-gray-400">
-              <span className="font-medium">Document Status:</span> {srStatus}
-            </span>
-            <span className="text-gray-600 dark:text-gray-400">
-              <span className="font-medium">Workflow Stage:</span> {workflowSteps[getCurrentStep(srStatus as SRStatus)]?.label}
-            </span>
-          </div>
-          {/* Last Action Field */}
-          <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-            <div className="text-xs text-gray-600 dark:text-gray-400">
-              <span className="font-medium">Last Action:</span> Submitted for HOD Review by {requisition.requestor} ({requisition.requestDate})
+            <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-600 dark:text-gray-400">
+                  <span className="font-medium">Workflow Stage:</span> {workflowSteps[getCurrentStep(srStatus as SRStatus)]?.label}
+                </span>
+                {requisition.lastAction?.toLowerCase().includes('return') && (
+                  <Badge className="text-xs px-2 py-0.5 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-700">
+                    Return for review
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-        
-        {/* From/To Locations */}
-        <div className="flex gap-4 mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
-          <div className="flex-1">
-            <div className="text-gray-500 dark:text-gray-400 text-sm font-medium">Store Name:</div>
-            <div className="text-base">{requisition.sourceLocation}</div>
-          </div>
-          <div className="w-8 flex items-center justify-center">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M5 12H19M19 12L13 6M19 12L13 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <div className="flex-1">
-            <div className="text-gray-500 dark:text-gray-400 text-sm font-medium">Request from:</div>
-            <div className="text-base">{requisition.requestingDepartment}</div>
-          </div>
-        </div>
+        </Card>
       </div>
 
-      {/* Items Section Header */}
-      <div className="px-4 py-3 flex items-center justify-between bg-blue-50 dark:bg-blue-950 border-b border-border">
-        <div className="flex items-center">
-          <input
-            type="checkbox"
-            className="w-5 h-5 rounded mr-2 border-2 border-blue-400 accent-blue-600"
-            onChange={toggleSelectAll}
-            checked={requisition.items.length > 0 && selectedItems.length === requisition.items.length}
-          />
-          <span className="font-medium text-xl">Items</span>
-        </div>
-        <span className="text-gray-500 dark:text-gray-400 text-sm">May 20, 2025</span>
-      </div>
+      {/* Main Content */}
+      <main className="flex-1 pb-20 px-4">
+        <div>
+          <div className="flex items-center mb-4">
+            <input 
+              type="checkbox" 
+              checked={requisition.items.length > 0 && selectedItems.length === requisition.items.length} 
+              onChange={toggleSelectAll} 
+              className="mr-2 w-4 h-4 accent-blue-600" 
+            />
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              Select all 
+              <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                ({requisition.items.length} items)
+              </span>
+            </h2>
+          </div>
 
-      {/* Bulk Actions Menu */}
-      {selectedItems.length > 0 && (
-        <div className="px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800">
-          <div className="flex gap-2 items-center">
-            <span className="text-xs font-medium text-blue-700 dark:text-blue-300">Bulk Action:</span>
-            <button 
-              className="py-1 px-2 text-xs bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 border border-blue-600 dark:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md"
-              onClick={() => {
+          {selectedItems.length > 0 && (
+            <div className="flex gap-2 mb-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg items-center">
+              <Button size="sm" className="bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 border border-blue-600 dark:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30" onClick={() => {
                 const updatedItems = requisition.items.map(item => 
                   selectedItems.includes(item.id) ? { ...item, status: 'Approved' as const, isEdited: false } : item
                 );
                 setRequisition({ ...requisition, items: updatedItems });
                 setSelectedItems([]);
-              }}
-            >
-              Approve
-            </button>
-            <button 
-              className="py-1 px-2 text-xs bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 rounded-md"
-              onClick={() => {
+              }}>Approve</Button>
+              <Button size="sm" className="bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600" onClick={() => {
                 const updatedItems = requisition.items.map(item => 
                   selectedItems.includes(item.id) ? { ...item, status: 'Review' as const, isEdited: false } : item
                 );
                 setRequisition({ ...requisition, items: updatedItems });
                 setSelectedItems([]);
-              }}
-            >
-              Review
-            </button>
-            <button 
-              className="py-1 px-2 text-xs bg-white dark:bg-gray-700 text-red-600 dark:text-red-400 border border-red-600 dark:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md"
-              onClick={() => {
+              }}>Review</Button>
+              <Button size="sm" className="bg-white dark:bg-gray-700 text-red-600 dark:text-red-400 border border-red-600 dark:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/30" onClick={() => {
                 const updatedItems = requisition.items.map(item => 
                   selectedItems.includes(item.id) ? { ...item, status: 'Rejected' as const, isEdited: false } : item
                 );
                 setRequisition({ ...requisition, items: updatedItems });
                 setSelectedItems([]);
-              }}
-            >
-              Reject
-            </button>
-            <button 
-              className="py-1 px-2 text-xs bg-white dark:bg-gray-700 text-yellow-600 dark:text-yellow-400 border border-yellow-600 dark:border-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/30 rounded-md"
-              onClick={() => {
+              }}>Reject</Button>
+              <Button size="sm" className="bg-white dark:bg-gray-700 text-yellow-600 dark:text-yellow-400 border border-yellow-600 dark:border-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/30" onClick={() => {
                 const updatedItems = requisition.items.map(item => 
                   selectedItems.includes(item.id) ? { ...item, status: 'Pending' as const, isEdited: false } : item
                 );
                 setRequisition({ ...requisition, items: updatedItems });
                 setSelectedItems([]);
-              }}
-            >
-              Reset
-            </button>
-          </div>
-        </div>
-      )}
+              }}>Reset</Button>
+            </div>
+          )}
 
-      {/* Item List */}
-      <div className="flex-1 overflow-auto pb-32">
-        {requisition.items.map(item => (
-          <div key={item.id} className="p-4 bg-white dark:bg-gray-900 border-b border-border">
-            <div className="flex items-start gap-3">
-              <input
-                type="checkbox"
-                className="w-5 h-5 mt-1 rounded border-2 border-blue-400 accent-blue-600"
-                checked={selectedItems.includes(item.id)}
-                onChange={() => toggleItemSelection(item.id)}
-              />
-              
-              <div className="flex-1">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-lg font-medium">{item.name}</h3>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">SKU: {item.sku}</div>
+          <ScrollArea className="h-[600px] pr-2">
+            {requisition.items.map((item) => (
+              <Card key={item.id} className="mb-4 p-4 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm bg-white dark:bg-gray-800">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex items-center">
+                    <input type="checkbox" checked={selectedItems.includes(item.id)} onChange={() => toggleItemSelection(item.id)} className="mr-2 w-4 h-4 accent-blue-600" />
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{item.name}</h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">SKU: {item.sku}</p>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     {item.isEdited && (
-                      <div className="px-2 py-1 bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 rounded-full text-xs font-medium">
+                      <Badge className="text-xs px-2 py-0.5 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-700">
                         Edited
-                      </div>
+                      </Badge>
                     )}
-                    <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      item.status === 'Approved' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
-                      item.status === 'Rejected' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
-                      item.status === 'Review' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
-                      'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                    }`}>
-                      {item.status}
+                    <Badge className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs px-2 py-0.5">{item.status}</Badge>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 mt-4">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Requested:</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.requestedQty} {item.unit}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Approved:</p>
+                      <div className="flex gap-1">
+                        <input
+                          type="number"
+                          className="w-16 h-8 text-xs border border-gray-300 dark:border-gray-600 rounded-md px-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                          value={item.approvedQty ?? item.requestedQty}
+                          onChange={(e) => updateApprovedQuantity(item.id, e.target.value)}
+                          min="0"
+                          step="0.1"
+                        />
+                        <select
+                          className="w-12 h-8 text-xs border border-gray-300 dark:border-gray-600 rounded-md px-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                          value={item.approvedUnit || item.unit}
+                          onChange={(e) => updateApprovedUnit(item.id, e.target.value)}
+                        >
+                          {item.unitOptions?.map(unitOption => (
+                            <option key={unitOption} value={unitOption}>{unitOption}</option>
+                          )) || <option value={item.unit}>{item.unit}</option>}
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Issued:</p>
+                      <div className="flex gap-1">
+                        <input
+                          type="number"
+                          className="w-16 h-8 text-xs border border-gray-300 dark:border-gray-600 rounded-md px-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                          value={item.issuedQty ?? 0}
+                          onChange={(e) => updateIssuedQuantity(item.id, e.target.value)}
+                          min="0"
+                          step="0.1"
+                        />
+                        <select
+                          className="w-12 h-8 text-xs border border-gray-300 dark:border-gray-600 rounded-md px-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                          value={item.issuedUnit || item.unit}
+                          onChange={(e) => updateIssuedUnit(item.id, e.target.value)}
+                        >
+                          {item.unitOptions?.map(unitOption => (
+                            <option key={unitOption} value={unitOption}>{unitOption}</option>
+                          )) || <option value={item.unit}>{item.unit}</option>}
+                        </select>
+                      </div>
                     </div>
                   </div>
                 </div>
-                
-                <div className="mt-4 grid grid-cols-3 gap-3">
-                  <div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Requested:</div>
-                    <div className="font-medium text-base">{item.requestedQty} {item.unit}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Approved:</div>
-                    <div className="flex items-center mt-1">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-9 w-9 rounded-r-none border-r-0"
-                        onClick={() => {
-                          const currentValue = parseFloat(String(item.approvedQty ?? item.requestedQty)) || 0;
-                          updateApprovedQuantity(item.id, Math.max(0, currentValue - 1).toString());
-                        }}
-                        aria-label="Decrease approved quantity"
-                      >
-                        -
-                      </Button>
-                      <input
-                        type="number"
-                        className="w-full h-9 px-2 py-1.5 border-t border-b border-input text-center text-sm focus:ring-0 focus:outline-none"
-                        value={item.approvedQty ?? item.requestedQty}
-                        min="0"
-                        onChange={(e) => updateApprovedQuantity(item.id, e.target.value)}
-                        placeholder="0"
-                      />
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-9 w-9 rounded-l-none border-l-0"
-                        onClick={() => {
-                          const currentValue = parseFloat(String(item.approvedQty ?? item.requestedQty)) || 0;
-                          updateApprovedQuantity(item.id, (currentValue + 1).toString());
-                        }}
-                        aria-label="Increase approved quantity"
-                      >
-                        +
-                      </Button>
-                    </div>
-                    <select 
-                      className="w-full border border-gray-300 dark:border-gray-700 rounded-md py-1 px-1 bg-white dark:bg-gray-800 text-sm mt-1 h-9"
-                      value={item.approvedUnit || item.unit}
-                      onChange={(e) => updateApprovedUnit(item.id, e.target.value)}
-                    >
-                      {item.unitOptions?.map(unitOption => (
-                        <option key={unitOption} value={unitOption}>{unitOption}</option>
-                      )) || <option value={item.unit}>{item.unit}</option>}
-                    </select>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Issue Qty:</div>
-                    <div className="flex items-center mt-1">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-9 w-9 rounded-r-none border-r-0"
-                        onClick={() => {
-                          const currentValue = parseFloat(String(item.issuedQty)) || 0;
-                          updateIssuedQuantity(item.id, Math.max(0, currentValue - 1).toString());
-                        }}
-                        aria-label="Decrease issue quantity"
-                      >
-                        -
-                      </Button>
-                      <input
-                        type="number"
-                        className="w-full h-9 px-2 py-1.5 border-t border-b border-input text-center text-sm focus:ring-0 focus:outline-none"
-                        value={item.issuedQty || 0}
-                        min="0"
-                        onChange={(e) => updateIssuedQuantity(item.id, e.target.value)}
-                        placeholder="0"
-                      />
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-9 w-9 rounded-l-none border-l-0"
-                        onClick={() => {
-                          const currentValue = parseFloat(String(item.issuedQty)) || 0;
-                          updateIssuedQuantity(item.id, (currentValue + 1).toString());
-                        }}
-                        aria-label="Increase issue quantity"
-                      >
-                        +
-                      </Button>
-                    </div>
-                    <select 
-                      className="w-full border border-gray-300 dark:border-gray-700 rounded-md py-1 px-1 bg-white dark:bg-gray-800 text-sm mt-1 h-9"
-                      value={item.issuedUnit || item.unit}
-                      onChange={(e) => updateIssuedUnit(item.id, e.target.value)}
-                    >
-                      {item.unitOptions?.map(unitOption => (
-                        <option key={unitOption} value={unitOption}>{unitOption}</option>
-                      )) || <option value={item.unit}>{item.unit}</option>}
-                    </select>
+
+                <div className="flex flex-row items-center justify-between text-sm mt-2 mb-1">
+                  <div className="flex flex-row gap-3">
+                    <Button variant="ghost" size="sm" className="text-blue-600 dark:text-blue-400 no-underline hover:underline bg-transparent border-0 p-0" onClick={() => openOnHand(item)}>On Hand</Button>
+                    <Button variant="ghost" size="sm" className="text-blue-600 dark:text-blue-400 no-underline hover:underline bg-transparent border-0 p-0" onClick={() => openOnOrder(item)}>On Order</Button>
                   </div>
                 </div>
-                
-                {/* Price and Cost Totals */}
-                <div className="mt-3 grid grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Unit Price:</div>
-                    <div className="font-medium">${item.price?.toFixed(2)}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Total Cost:</div>
-                    <div className="font-medium">${item.totalCost?.toFixed(2)}</div>
-                  </div>
-                </div>
-                
-                {/* Business Dimensions */}
+
                 <div className="mt-3">
-                  <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Business Dimensions:</div>
-                  <div className="grid grid-cols-1 gap-3">
-                    {/* Project Code */}
-                    <div>
-                      <label className="text-xs text-gray-500 dark:text-gray-400">Project Code:</label>
-                      <input
-                        type="text"
-                        className="w-full border border-gray-300 dark:border-gray-700 rounded-md p-2 text-sm bg-white dark:bg-gray-800"
-                        value={item.businessDimensions?.projectCode || ''}
-                        placeholder="Enter project code"
-                        onChange={(e) => updateBusinessDimension(item.id, 'projectCode', e.target.value)}
-                      />
-                    </div>
-                    
-                    {/* Market Segment */}
-                    <div>
-                      <label className="text-xs text-gray-500 dark:text-gray-400">Market Segment:</label>
-                      <select 
-                        className="w-full border border-gray-300 dark:border-gray-700 rounded-md p-2 bg-white dark:bg-gray-800 text-sm"
-                        value={item.businessDimensions?.marketSegment || ''}
-                        onChange={(e) => updateBusinessDimension(item.id, 'marketSegment', e.target.value)}
-                      >
-                        <option value="">Select segment</option>
-                        <option value="Food & Beverage">Food & Beverage</option>
-                        <option value="Executive Lounge">Executive Lounge</option>
-                        <option value="Housekeeping">Housekeeping</option>
-                        <option value="Front Office">Front Office</option>
-                        <option value="Maintenance">Maintenance</option>
-                        <option value="Security">Security</option>
-                        <option value="Administration">Administration</option>
-                        <option value="Events & Banquets">Events & Banquets</option>
-                        <option value="Spa & Wellness">Spa & Wellness</option>
-                        <option value="Recreation">Recreation</option>
-                      </select>
-                    </div>
-                    
-                    {/* Event */}
-                    <div>
-                      <label className="text-xs text-gray-500 dark:text-gray-400">Event:</label>
-                      <select 
-                        className="w-full border border-gray-300 dark:border-gray-700 rounded-md p-2 bg-white dark:bg-gray-800 text-sm"
-                        value={item.businessDimensions?.event || ''}
-                        onChange={(e) => updateBusinessDimension(item.id, 'event', e.target.value)}
-                      >
-                        <option value="">Select event type</option>
-                        <option value="Daily Operations">Daily Operations</option>
-                        <option value="Corporate Retreat">Corporate Retreat</option>
-                        <option value="Wedding Reception">Wedding Reception</option>
-                        <option value="Conference">Conference</option>
-                        <option value="Gala Dinner">Gala Dinner</option>
-                        <option value="Product Launch">Product Launch</option>
-                        <option value="Holiday Celebration">Holiday Celebration</option>
-                        <option value="Training Session">Training Session</option>
-                        <option value="Team Building">Team Building</option>
-                        <option value="Special Occasion">Special Occasion</option>
-                        <option value="Maintenance Work">Maintenance Work</option>
-                        <option value="Emergency">Emergency</option>
-                      </select>
-                    </div>
+                  <div className="grid grid-cols-3 gap-2 mt-3">
+                    <Button size="sm" className="bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 border border-blue-600 dark:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 !rounded-button" onClick={() => setItemStatus(item.id, 'Approved')}>
+                      Approve
+                    </Button>
+                    <Button size="sm" className="bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 !rounded-button" onClick={() => setItemStatus(item.id, 'Review')}>
+                      Review
+                    </Button>
+                    <Button size="sm" className="bg-white dark:bg-gray-700 text-red-600 dark:text-red-400 border border-red-600 dark:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 !rounded-button" onClick={() => setItemStatus(item.id, 'Rejected')}>
+                      Reject
+                    </Button>
                   </div>
                 </div>
-                
-                {item.notes && (
-                  <div className="mt-3">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Comments:</div>
-                    <div className="text-sm">{item.notes}</div>
-                  </div>
-                )}
-                
-                <div className="mt-4 flex gap-4 flex-wrap">
-                  <button 
-                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                    onClick={() => openOnHand(item)}
-                  >
-                    On Hand
-                  </button>
-                  <button 
-                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                    onClick={() => openOnOrder(item)}
-                  >
-                    On Order
-                  </button>
-                  <button className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center ml-auto">
-                    Detail <ChevronRight size={16} className="ml-1" />
-                  </button>
-                </div>
-                
-                {/* Per-item action buttons - xs size */}
-                <div className="mt-4 grid grid-cols-3 gap-3">
-                  <button 
-                    className="py-1 px-2 text-xs bg-white border border-blue-300 text-blue-600 rounded-md text-center font-medium"
-                    onClick={() => setItemStatus(item.id, "Approved")}
-                  >
-                    Approve
-                  </button>
-                  <button 
-                    className="py-1 px-2 text-xs bg-white border border-gray-300 text-gray-700 rounded-md text-center font-medium"
-                    onClick={() => setItemStatus(item.id, "Review")}
-                  >
-                    Review
-                  </button>
-                  <button 
-                    className="py-1 px-2 text-xs bg-white border border-red-300 text-red-600 rounded-md text-center font-medium"
-                    onClick={() => setItemStatus(item.id, "Rejected")}
-                  >
-                    Reject
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+
+              </Card>
+            ))}
+          </ScrollArea>
+        </div>
+            </main>
 
       {/* Bottom Action Bar - PR style */}
-      <div className="fixed bottom-16 left-0 right-0 bg-white dark:bg-gray-900 shadow-md p-3 w-full max-w-md mx-auto border-t border-gray-200 dark:border-gray-700 z-50">
+      <div className="fixed bottom-16 left-0 right-0 bg-transparent p-3 w-full max-w-md mx-auto z-50">
         {/* Workflow Status Indicator */}
         <div className="mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-2 text-xs">
@@ -897,7 +672,6 @@ export default function StoreRequisitionDetailPage() {
                 <span className="w-4 h-4 rounded-full bg-gray-500 flex items-center justify-center">
                   <span className="w-2 h-2 bg-white rounded-full"></span>
                 </span>
-                <span className="text-gray-700 dark:text-gray-300">Please review all items before submitting</span>
               </>
             )}
           </div>
