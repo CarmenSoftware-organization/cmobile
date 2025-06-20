@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-import { X, ChevronLeft } from "lucide-react";
+import { X, ChevronLeft, Calculator, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -51,6 +51,30 @@ interface OnOrderData {
   dueDate: string;
 }
 
+interface CalculatorItem {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+}
+
+const UNIT_CONVERSIONS: Record<string, number> = {
+  'g': 1,
+  'kg': 1000,
+  'mg': 0.001,
+  'L': 1000, // assuming 1L = 1kg for liquids
+  'mL': 1,
+  'pcs': 1, // assume 1 piece = 1 gram (default)
+  'box': 100, // assume 1 box = 100g (adjustable)
+  'case': 1000, // assume 1 case = 1kg (adjustable)
+  'bottle': 500, // assume 1 bottle = 500g (adjustable)
+  'pack': 50, // assume 1 pack = 50g (adjustable)
+  'ea': 1, // each = 1 unit
+  'btl': 500, // bottle = 500g
+  'cs': 1000, // case = 1kg
+  'lb': 453.592, // pound to grams
+};
+
 export default function StoreRequisitionDetailPage() {
   const params = useParams();
   const { id } = params;
@@ -60,8 +84,14 @@ export default function StoreRequisitionDetailPage() {
   const [showOnOrder, setShowOnOrder] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   
-  // State for SR status
-  const [srStatus, setSrStatus] = useState<"Draft" | "In-progress" | "Complete" | "Issued" | "Rejected" | "Cancel">("In-progress");
+  // Calculator dialog state
+  const [showCalculatorDialog, setShowCalculatorDialog] = useState(false);
+  const [currentCalculatorItemIndex, setCurrentCalculatorItemIndex] = useState<number | null>(null);
+  const [calculatorType, setCalculatorType] = useState<'approved' | 'issued'>('approved');
+  const [calculatorItems, setCalculatorItems] = useState<CalculatorItem[]>([]);
+  const [showNumberPad, setShowNumberPad] = useState(false);
+  const [activeCalculatorItemId, setActiveCalculatorItemId] = useState<string | null>(null);
+  const [numberPadValue, setNumberPadValue] = useState("");
   
   // New state for workflow logic
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -183,18 +213,98 @@ export default function StoreRequisitionDetailPage() {
     }
   };
 
-  // Update SR status based on item statuses
-  const updateSrStatus = (items: Item[]) => {
-    const allApproved = items.every(item => item.status === "Approved");
-    const anyRejected = items.some(item => item.status === "Rejected");
+  // Calculate base total in grams for calculator
+  const baseTotalGrams = calculatorItems.reduce((total, item) => {
+    const conversionFactor = UNIT_CONVERSIONS[item.unit] || 1;
+    return total + (item.quantity * conversionFactor);
+  }, 0);
+
+  // Calculator Functions
+  const openCalculatorDialog = (itemIndex: number, type: 'approved' | 'issued') => {
+    const item = requisition.items[itemIndex];
+    const currentValue = type === 'approved' ? (item.approvedQty ?? item.requestedQty) : (item.issuedQty ?? 0);
     
-    if (allApproved) {
-      setSrStatus("Complete");
-    } else if (anyRejected) {
-      setSrStatus("Rejected");
+    setCurrentCalculatorItemIndex(itemIndex);
+    setCalculatorType(type);
+    setCalculatorItems([{
+      id: '1',
+      name: item.name,
+      quantity: currentValue,
+      unit: item.unit
+    }]);
+    setShowCalculatorDialog(true);
+  };
+
+  const closeCalculatorDialog = () => {
+    setShowCalculatorDialog(false);
+    setCurrentCalculatorItemIndex(null);
+    setCalculatorType('approved');
+    setCalculatorItems([]);
+  };
+
+  const addCalculatorItem = () => {
+    const item = requisition.items[currentCalculatorItemIndex!];
+    const newId = (calculatorItems.length + 1).toString();
+    setCalculatorItems(prev => [...prev, {
+      id: newId,
+      name: `${item.name} (Part ${newId})`,
+      quantity: 0,
+      unit: item.unit
+    }]);
+  };
+
+  const removeCalculatorItem = (id: string) => {
+    setCalculatorItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  const updateCalculatorItem = (id: string, field: keyof CalculatorItem, value: string | number) => {
+    setCalculatorItems(prev => prev.map(item => 
+      item.id === id ? { ...item, [field]: value } : item
+    ));
+  };
+
+  const openNumberPad = (itemId: string, currentValue: number) => {
+    setActiveCalculatorItemId(itemId);
+    setNumberPadValue(currentValue.toString());
+    setShowNumberPad(true);
+  };
+
+  const numberPadInput = (digit: string) => {
+    if (digit === 'clear') {
+      setNumberPadValue('');
+    } else if (digit === 'backspace') {
+      setNumberPadValue(prev => prev.slice(0, -1));
+    } else if (digit === '.' && numberPadValue.includes('.')) {
+      // Don't add another decimal point
+      return;
     } else {
-      setSrStatus("In-progress");
+      setNumberPadValue(prev => prev + digit);
     }
+  };
+
+  const confirmNumberPad = () => {
+    const value = parseFloat(numberPadValue) || 0;
+    if (activeCalculatorItemId) {
+      updateCalculatorItem(activeCalculatorItemId, 'quantity', value);
+    }
+    setShowNumberPad(false);
+    setActiveCalculatorItemId(null);
+  };
+
+  const confirmCalculatorTotal = () => {
+    if (currentCalculatorItemIndex !== null) {
+      // Calculate total based on base unit (grams) and convert back to original unit
+      const item = requisition.items[currentCalculatorItemIndex];
+      const originalUnitConversion = UNIT_CONVERSIONS[item.unit] || 1;
+      const totalInOriginalUnit = baseTotalGrams / originalUnitConversion;
+      
+      if (calculatorType === 'approved') {
+        updateApprovedQuantity(item.id, totalInOriginalUnit.toString());
+      } else {
+        updateIssuedQuantity(item.id, totalInOriginalUnit.toString());
+      }
+    }
+    closeCalculatorDialog();
   };
 
   // Workflow logic functions (similar to PR Approval)
@@ -299,8 +409,6 @@ export default function StoreRequisitionDetailPage() {
     setSelectedItem(null); // Close any open dialogs
   };
 
-
-
   // Function to set item status
   const setItemStatus = (itemId: number, status: "Approved" | "Rejected" | "Review") => {
     const updatedItems = requisition.items.map(item => 
@@ -313,7 +421,6 @@ export default function StoreRequisitionDetailPage() {
         : item
     );
     setRequisition({ ...requisition, items: updatedItems });
-    updateSrStatus(updatedItems);
   };
 
   // Functions to update approved and issued quantities and units
@@ -367,8 +474,6 @@ export default function StoreRequisitionDetailPage() {
     if (status === "Rejected" || status === "Cancel") return 1;
     return 0;
   }
-
-
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
@@ -454,9 +559,7 @@ export default function StoreRequisitionDetailPage() {
 
             <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-600 dark:text-gray-400">
-                  <span className="font-medium">Workflow Stage:</span> {workflowSteps[getCurrentStep(srStatus as SRStatus)]?.label}
-                </span>
+
                 {requisition.lastAction?.toLowerCase().includes('return') && (
                   <Badge className="text-xs px-2 py-0.5 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-700">
                     Return for review
@@ -527,7 +630,7 @@ export default function StoreRequisitionDetailPage() {
                     <input type="checkbox" checked={selectedItems.includes(item.id)} onChange={() => toggleItemSelection(item.id)} className="mr-2 w-4 h-4 accent-blue-600" />
                     <div>
                       <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{item.name}</h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">SKU: {item.sku}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">SKU: {item.sku}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -548,7 +651,7 @@ export default function StoreRequisitionDetailPage() {
                     </div>
                     <div>
                       <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Approved:</p>
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 items-center">
                         <input
                           type="number"
                           className="w-16 h-8 text-xs border border-gray-300 dark:border-gray-600 rounded-md px-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
@@ -557,6 +660,14 @@ export default function StoreRequisitionDetailPage() {
                           min="0"
                           step="0.1"
                         />
+                        <button
+                          className="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors"
+                          onClick={() => openCalculatorDialog(requisition.items.findIndex(itm => itm.id === item.id), 'approved')}
+                          type="button"
+                          title="Detailed entry"
+                        >
+                          <Calculator className="w-3 h-3" />
+                        </button>
                         <span className="w-12 h-8 text-xs flex items-center px-1 text-gray-900 dark:text-gray-100">
                           {item.approvedUnit || item.unit}
                         </span>
@@ -564,7 +675,7 @@ export default function StoreRequisitionDetailPage() {
                     </div>
                     <div>
                       <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Issued:</p>
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 items-center">
                         <input
                           type="number"
                           className="w-16 h-8 text-xs border border-gray-300 dark:border-gray-600 rounded-md px-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
@@ -573,6 +684,14 @@ export default function StoreRequisitionDetailPage() {
                           min="0"
                           step="0.1"
                         />
+                        <button
+                          className="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors"
+                          onClick={() => openCalculatorDialog(requisition.items.findIndex(itm => itm.id === item.id), 'issued')}
+                          type="button"
+                          title="Detailed entry"
+                        >
+                          <Calculator className="w-3 h-3" />
+                        </button>
                         <span className="w-12 h-8 text-xs flex items-center px-1 text-gray-900 dark:text-gray-100">
                           {item.issuedUnit || item.unit}
                         </span>
@@ -751,35 +870,49 @@ export default function StoreRequisitionDetailPage() {
               </Button>
             </div>
             <div className="p-4">
-              <div className="text-xs bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-400 mb-2 px-2 py-1 rounded-full inline-block">
-                BU: {requisition.businessUnit}
-              </div>
-              <div className="border rounded-md overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-muted/50 dark:bg-muted/20">
-                      <th className="text-left py-2 px-3 font-medium text-muted-foreground border-b border-border">Location</th>
-                      <th className="text-center py-2 px-2 font-medium text-muted-foreground border-b border-border">Qty Available</th>
-                      <th className="text-center py-2 px-2 font-medium text-muted-foreground border-b border-border">Min</th>
-                      <th className="text-center py-2 px-2 font-medium text-muted-foreground border-b border-border">Max</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {onHandData[selectedItem.sku]?.map((row, index) => (
-                      <tr key={index} className="border-b border-border last:border-b-0 hover:bg-muted/20">
-                        <td className="py-2 px-3">{row.location}</td>
-                        <td className="py-2 px-2 text-center">{row.qtyAvailable}</td>
-                        <td className="py-2 px-2 text-center">{row.min}</td>
-                        <td className="py-2 px-2 text-center">{row.max}</td>
-                      </tr>
-                    ))}
-                    {!onHandData[selectedItem.sku]?.length && (
-                      <tr>
-                        <td colSpan={4} className="py-3 text-center text-muted-foreground">No on-hand data available</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+              <div className="space-y-3">
+                {onHandData[selectedItem.sku]?.map((row, index) => (
+                  <div key={index} className="bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 p-4 hover:shadow-md transition-all duration-200">
+                    {/* First Level: Location and Available Quantity */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{row.location}</span>
+                      </div>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                        {row.qtyAvailable} Available
+                      </span>
+                    </div>
+                    
+                    {/* Second Level: Min and Max */}
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block">Min Qty</span>
+                        <span className="font-medium text-gray-900 dark:text-gray-100">{row.min}</span>
+                      </div>
+                      <div>
+                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block">Max Qty</span>
+                        <span className="font-medium text-gray-900 dark:text-gray-100">{row.max}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                
+                {onHandData[selectedItem.sku]?.length > 0 && (
+                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg border-2 border-blue-200 dark:border-blue-700 p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-gray-900 dark:text-gray-100">Total Available</span>
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-blue-100 text-blue-900 dark:bg-blue-800 dark:text-blue-100">
+                        {onHandData[selectedItem.sku]?.reduce((sum, row) => sum + row.qtyAvailable, 0)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                
+                {!onHandData[selectedItem.sku]?.length && (
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 text-center">
+                    <span className="text-gray-500 dark:text-gray-400">No on-hand data available</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -805,35 +938,241 @@ export default function StoreRequisitionDetailPage() {
               </Button>
             </div>
             <div className="p-4">
-              <div className="text-xs bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-400 mb-2 px-2 py-1 rounded-full inline-block">
-                BU: {requisition.businessUnit}
+              <div className="space-y-3">
+                {onOrderData[selectedItem.sku]?.map((row, index) => (
+                  <div key={index} className="bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 p-4 hover:shadow-md transition-all duration-200">
+                    {/* First Level: PO Number, Status, and Quantity */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{row.poNumber}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          row.status === 'Confirmed' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
+                          row.status === 'Pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' :
+                          'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
+                        }`}>
+                          {row.status}
+                        </span>
+                      </div>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300">
+                        {row.orderedQty} Ordered
+                      </span>
+                    </div>
+                    
+                    {/* Second Level: Vendor and Due Date */}
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block">Vendor</span>
+                        <span className="font-medium text-gray-900 dark:text-gray-100">{row.vendor}</span>
+                      </div>
+                      <div>
+                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block">Due Date</span>
+                        <span className="font-medium text-gray-900 dark:text-gray-100">{row.dueDate}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                
+                {!onOrderData[selectedItem.sku]?.length && (
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 text-center">
+                    <span className="text-gray-500 dark:text-gray-400">No pending orders</span>
+                  </div>
+                )}
               </div>
-              <div className="border rounded-md overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-muted/50 dark:bg-muted/20">
-                      <th className="text-left py-2 px-3 font-medium text-muted-foreground border-b border-border">PO Number</th>
-                      <th className="text-left py-2 px-2 font-medium text-muted-foreground border-b border-border">Vendor</th>
-                      <th className="text-center py-2 px-2 font-medium text-muted-foreground border-b border-border">Qty</th>
-                      <th className="text-center py-2 px-2 font-medium text-muted-foreground border-b border-border">Due Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {onOrderData[selectedItem.sku]?.map((row, index) => (
-                      <tr key={index} className="border-b border-border last:border-b-0 hover:bg-muted/20">
-                        <td className="py-2 px-3">{row.poNumber}</td>
-                        <td className="py-2 px-2">{row.vendor}</td>
-                        <td className="py-2 px-2 text-center">{row.orderedQty}</td>
-                        <td className="py-2 px-2 text-center text-xs">{row.dueDate}</td>
-                      </tr>
-                    ))}
-                    {!onOrderData[selectedItem.sku]?.length && (
-                      <tr>
-                        <td colSpan={4} className="py-3 text-center text-muted-foreground">No pending orders</td>
-                      </tr>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Calculator Dialog */}
+      {showCalculatorDialog && currentCalculatorItemIndex !== null && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              closeCalculatorDialog();
+            }
+          }}
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-750 rounded-t-xl">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  {calculatorType === 'approved' ? 'Approved' : 'Issued'} Quantity Calculator
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {requisition.items[currentCalculatorItemIndex].name}
+                </p>
+              </div>
+              <button
+                onClick={closeCalculatorDialog}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Calculator Items */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              {calculatorItems.map((calcItem) => (
+                <div key={calcItem.id} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                  <div className="flex items-center justify-between mb-3">
+                    <input
+                      type="text"
+                      value={calcItem.name}
+                      onChange={(e) => updateCalculatorItem(calcItem.id, 'name', e.target.value)}
+                      className="text-sm font-medium bg-transparent border-none outline-none text-gray-900 dark:text-gray-100 flex-1"
+                      placeholder="Item name"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => openNumberPad(calcItem.id, calcItem.quantity)}
+                      className="flex-1 px-4 py-3 bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded-lg text-center font-mono text-lg hover:bg-gray-50 dark:hover:bg-gray-500 transition-colors"
+                    >
+                      {calcItem.quantity || "0"}
+                    </button>
+                    
+                    <select
+                      value={calcItem.unit}
+                      onChange={(e) => updateCalculatorItem(calcItem.id, 'unit', e.target.value)}
+                      className="px-3 py-2 bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded-lg text-sm min-w-0 w-20"
+                    >
+                      {Object.keys(UNIT_CONVERSIONS).map(unit => (
+                        <option key={unit} value={unit}>{unit}</option>
+                      ))}
+                    </select>
+
+                    {calculatorItems.length > 1 && (
+                      <button
+                        onClick={() => removeCalculatorItem(calcItem.id)}
+                        className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     )}
-                  </tbody>
-                </table>
+                  </div>
+                  
+                  {/* Show converted value */}
+                  <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-right">
+                    = {(calcItem.quantity * (UNIT_CONVERSIONS[calcItem.unit] || 1)).toFixed(2)}g
+                  </div>
+                </div>
+              ))}
+
+              {/* Add Item Button */}
+              <button
+                onClick={addCalculatorItem}
+                className="w-full py-3 border-2 border-dashed border-blue-300 dark:border-blue-600 rounded-xl text-blue-600 dark:text-blue-400 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-center gap-2 text-sm font-medium"
+              >
+                <Plus className="w-4 h-4" />
+                Add Another Unit
+              </button>
+            </div>
+
+            {/* Footer with Base Total */}
+            <div className="border-t border-gray-200 dark:border-gray-700 p-5 bg-gray-50 dark:bg-gray-750 rounded-b-xl">
+              <div className="flex justify-between items-center mb-4 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-700">
+                <span className="text-sm font-medium text-blue-900 dark:text-blue-100">Total Weight:</span>
+                <span className="text-lg font-bold text-blue-900 dark:text-blue-100">
+                  {baseTotalGrams.toFixed(2)}g
+                </span>
+              </div>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={closeCalculatorDialog}
+                  className="flex-1 py-3 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-semibold text-sm hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmCalculatorTotal}
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm transition-colors shadow-sm"
+                >
+                  Use This Total
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Number Pad Dialog */}
+      {showNumberPad && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowNumberPad(false);
+            }
+          }}
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-sm flex flex-col">
+            <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700">
+              <h4 className="text-base font-semibold text-gray-900 dark:text-gray-100">Enter Quantity</h4>
+              <button
+                onClick={() => setShowNumberPad(false)}
+                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-4 flex flex-col">
+              <div className="text-center mb-4">
+                <input
+                  type="text"
+                  value={numberPadValue}
+                  readOnly
+                  className="text-xl font-mono text-center border border-gray-300 dark:border-gray-600 rounded-lg p-3 w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                {[1,2,3,4,5,6,7,8,9].map(num => (
+                  <button
+                    key={num}
+                    onClick={() => numberPadInput(num.toString())}
+                    className="h-14 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-lg font-semibold"
+                  >
+                    {num}
+                  </button>
+                ))}
+                <button
+                  onClick={() => numberPadInput('.')}
+                  className="h-14 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-lg font-semibold"
+                >
+                  .
+                </button>
+                <button
+                  onClick={() => numberPadInput('0')}
+                  className="h-14 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-lg font-semibold"
+                >
+                  0
+                </button>
+                <button
+                  onClick={() => numberPadInput('backspace')}
+                  className="h-14 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-lg font-semibold"
+                >
+                  ⌫
+                </button>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => numberPadInput('clear')}
+                  className="flex-1 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold"
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={confirmNumberPad}
+                  className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-semibold"
+                >
+                  Confirm
+                </button>
               </div>
             </div>
           </div>

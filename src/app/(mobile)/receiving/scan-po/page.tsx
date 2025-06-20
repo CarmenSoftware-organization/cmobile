@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Camera, AlertCircle, CheckCircle, MapPin } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ChevronLeft, Camera, AlertCircle, Hash } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { simulatePOScan, getLocationsFromPOs, type PurchaseOrder, type ScannedPOResult } from "@/data/mockPOData";
 
@@ -11,171 +12,178 @@ export default function ScanPOPage() {
   const router = useRouter();
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<ScannedPOResult | null>(null);
-  const [scannedPO, setScannedPO] = useState<PurchaseOrder | null>(null);
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [manualPONumber, setManualPONumber] = useState("");
+  const [isValidatingManual, setIsValidatingManual] = useState(false);
 
-  const handleScan = () => {
+  const autoCreateGRN = useCallback((po: PurchaseOrder) => {
+    try {
+      // Get locations from the scanned PO
+      const locations = getLocationsFromPOs([po]);
+      const locationNames = locations.map(loc => loc.name);
+
+      // Navigate to GRN detail automatically
+      const locationsParam = encodeURIComponent(locationNames.join(','));
+      const totalItems = po.items.length;
+      const url = `/receiving/grn-detail?po=${po.id}&locations=${locationsParam}&bu=${encodeURIComponent(po.businessUnit || '')}&vendor=${encodeURIComponent(po.vendor)}&itemCount=${totalItems}&fromScan=true`;
+      
+      router.push(url);
+    } catch (error) {
+      console.error('Error creating GRN:', error);
+      // Fallback to showing manual entry
+      setShowManualEntry(true);
+    }
+  }, [router]);
+
+  const handleScan = useCallback(() => {
     setIsScanning(true);
     setScanResult(null);
-    setScannedPO(null);
+    setShowManualEntry(false);
 
     // Simulate scanning delay
     setTimeout(() => {
-      // Simulate scanning PO-1001 (which has business unit)
-      const result = simulatePOScan("PO-1001");
-      setScanResult(result);
-      setScannedPO(result.po || null);
-      setIsScanning(false);
+      try {
+        // Simulate scanning PO-1001 (which has business unit)
+        const result = simulatePOScan("PO-1001");
+        setScanResult(result);
+        
+        if (result.found && result.po) {
+          // Auto-create GRN when PO is found
+          autoCreateGRN(result.po);
+        } else {
+          // Show manual entry option when not found
+          setShowManualEntry(true);
+        }
+      } catch (error) {
+        console.error('Error during scan:', error);
+        setShowManualEntry(true);
+      } finally {
+        setIsScanning(false);
+      }
     }, 2000);
-  };
+  }, [autoCreateGRN]);
 
-  const handleCreateGRN = () => {
-    if (!scannedPO) return;
-
-    // Get locations from the scanned PO
-    const locations = getLocationsFromPOs([scannedPO]);
-    const locationNames = locations.map(loc => loc.name);
-
-    // Navigate to GRN detail using the same pattern as New GRN flow for consistency
-    const locationsParam = encodeURIComponent(locationNames.join(','));
-    const totalItems = scannedPO.items.length;
-    router.push(`/receiving/grn-detail?po=${scannedPO.id}&locations=${locationsParam}&bu=${encodeURIComponent(scannedPO.businessUnit || '')}&vendor=${encodeURIComponent(scannedPO.vendor)}&itemCount=${totalItems}&fromScan=true`);
-  };
-
-  const handleSelectLocations = () => {
-    if (!scannedPO) return;
-
-    // Get locations from the scanned PO
-    const locations = getLocationsFromPOs([scannedPO]);
+  const handleManualPOValidation = useCallback(() => {
+    if (!manualPONumber.trim()) return;
     
-    if (locations.length <= 1) {
-      // If only one location, go directly to GRN creation
-      handleCreateGRN();
-      return;
-    }
+    setIsValidatingManual(true);
+    
+    // Simulate validation delay
+    setTimeout(() => {
+      try {
+        const result = simulatePOScan(manualPONumber.trim());
+        
+        if (result.found && result.po) {
+          // Auto-create GRN when manually entered PO is found
+          autoCreateGRN(result.po);
+        } else {
+          // Show error and allow retry
+          setScanResult(result);
+          setShowManualEntry(true);
+        }
+      } catch (error) {
+        console.error('Error validating manual PO:', error);
+        setShowManualEntry(true);
+      } finally {
+        setIsValidatingManual(false);
+      }
+    }, 1000);
+  }, [manualPONumber, autoCreateGRN]);
 
-    // Navigate to the same location selection page as New GRN flow for consistency
-    // Use po parameter with ID instead of poData for unified experience
-    router.push(`/receiving/select-grn-locations?po=${scannedPO.id}&bu=${encodeURIComponent(scannedPO.businessUnit || '')}&vendor=${encodeURIComponent(scannedPO.vendor)}&fromScan=true`);
-  };
 
-  const handleManualEntry = () => {
-    router.push("/receiving/select-bu");
-  };
 
-  const renderScanResult = () => {
-    if (!scanResult) return null;
 
-    if (!scanResult.found) {
-      return (
-        <Card className="p-4 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
-          <div className="flex items-center gap-3">
-            <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
-            <div>
-              <p className="font-medium text-red-900 dark:text-red-100">PO Not Found</p>
-              <p className="text-sm text-red-700 dark:text-red-300">
-                {scanResult.error || "The scanned code doesn't match any purchase order."}
-              </p>
-            </div>
-          </div>
-          <div className="mt-4 flex gap-2">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setScanResult(null)}
-            >
-              Scan Again
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={handleManualEntry}
-            >
-              Manual Entry
-            </Button>
-          </div>
-        </Card>
-      );
-    }
 
-    if (scanResult.found && scannedPO) {
-      const locations = getLocationsFromPOs([scannedPO]);
-      
-      return (
-        <Card className="p-4 border-green-200 bg-green-50">
-          <div className="flex items-center gap-3 mb-4">
-            <CheckCircle className="h-5 w-5 text-green-600" />
-            <div>
-              <p className="font-medium text-green-900">PO Found!</p>
-              <p className="text-sm text-green-700">
-                {scannedPO.number} • {scannedPO.vendor}
-              </p>
-            </div>
-          </div>
+  const renderManualEntry = () => {
+    if (!showManualEntry) return null;
 
-          <div className="space-y-3 mb-4">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-gray-600">Business Unit:</span>
-                <p className="font-medium">{scannedPO.businessUnit}</p>
-              </div>
-              <div>
-                <span className="text-gray-600">Total Value:</span>
-                <p className="font-medium">{scannedPO.totalValue}</p>
-              </div>
-            </div>
+    return (
+      <Card className="p-4 space-y-4">
+        <div className="text-center">
+          <Hash className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+            Enter PO Number
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Type the purchase order number manually
+          </p>
+        </div>
 
-            <div>
-              <span className="text-gray-600 text-sm">Description:</span>
-              <p className="font-medium text-sm">{scannedPO.description}</p>
-            </div>
-
-            {locations.length > 0 && (
-              <div>
-                <span className="text-gray-600 text-sm">Store Locations ({locations.length}):</span>
-                <div className="mt-2 space-y-1">
-                  {locations.map((location, index) => (
-                    <div key={index} className="flex items-center gap-2 text-sm">
-                      <MapPin className="h-3 w-3 text-gray-500" />
-                      <span className="font-medium">{location.name}</span>
-                      <span className="text-gray-500">({location.itemCount} items)</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+        <div className="space-y-3">
+          <Input
+            type="text"
+            placeholder="e.g., PO-1001"
+            value={manualPONumber}
+            onChange={(e) => setManualPONumber(e.target.value)}
+            className="text-center text-lg"
+            disabled={isValidatingManual}
+          />
 
           <div className="flex gap-2">
-            {locations.length > 1 ? (
-              <>
-                <Button 
-                  className="flex-1 bg-green-600 hover:bg-green-700"
-                  onClick={handleCreateGRN}
-                >
-                  Create GRN (All Locations)
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="flex-1"
-                  onClick={handleSelectLocations}
-                >
-                  Select Locations
-                </Button>
-              </>
-            ) : (
-              <Button 
-                className="w-full bg-green-600 hover:bg-green-700"
-                onClick={handleCreateGRN}
-              >
-                Create GRN
-              </Button>
-            )}
+            <Button 
+              variant="outline"
+              onClick={() => {
+                setShowManualEntry(false);
+                setScanResult(null);
+                setManualPONumber("");
+              }}
+              disabled={isValidatingManual}
+              className="flex-1"
+            >
+              Back to Scan
+            </Button>
+            <Button 
+              onClick={handleManualPOValidation}
+              disabled={!manualPONumber.trim() || isValidatingManual}
+              className="flex-1 bg-blue-600 hover:bg-blue-700"
+            >
+              {isValidatingManual ? "Validating..." : "Validate PO"}
+            </Button>
           </div>
-        </Card>
-      );
-    }
+        </div>
+      </Card>
+    );
+  };
 
-    return null;
+  const renderScanError = () => {
+    if (!scanResult || scanResult.found) return null;
+
+    return (
+      <Card className="p-4 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
+        <div className="flex items-center gap-3 mb-4">
+          <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+          <div>
+            <p className="font-medium text-red-900 dark:text-red-100">PO Not Found</p>
+            <p className="text-sm text-red-700 dark:text-red-300">
+              {scanResult.error || "The entered PO number doesn't match any purchase order."}
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              setScanResult(null);
+              setShowManualEntry(false);
+              setManualPONumber("");
+            }}
+          >
+            Scan Again
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              setScanResult(null);
+              setManualPONumber("");
+            }}
+          >
+            Try Different PO
+          </Button>
+        </div>
+      </Card>
+    );
   };
 
   return (
@@ -229,24 +237,29 @@ export default function ScanPOPage() {
           </div>
         </Card>
 
-        {/* Scan Result */}
-        {renderScanResult()}
+        {/* Manual Entry */}
+        {renderManualEntry()}
 
-        {/* Manual Entry Option */}
-        <Card className="p-4">
-          <div className="text-center space-y-3">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Can&apos;t scan the barcode?
-            </p>
-            <Button 
-              variant="outline" 
-              onClick={handleManualEntry}
-              className="w-full"
-            >
-              Manual Entry
-            </Button>
-          </div>
-        </Card>
+        {/* Scan Error */}
+        {renderScanError()}
+
+        {/* Manual Entry Option - Show only when not scanning and no manual entry shown */}
+        {!isScanning && !showManualEntry && !scanResult && (
+          <Card className="p-4">
+            <div className="text-center space-y-3">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Can&apos;t scan the barcode?
+              </p>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowManualEntry(true)}
+                className="w-full"
+              >
+                Enter PO Number Manually
+              </Button>
+            </div>
+          </Card>
+        )}
 
         {/* Instructions */}
         <Card className="p-4 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">

@@ -52,7 +52,7 @@ export interface PurchaseOrder {
 }
 
 // Centralized Mock PO Data
-export const mockPOs: PurchaseOrder[] = [
+const mockPOsRaw: PurchaseOrder[] = [
   {
     id: 1,
     number: "PO-1001",
@@ -1140,7 +1140,12 @@ export const mockPOs: PurchaseOrder[] = [
     ],
     vendorId: 2
   }
-].map(po => po.status === 'Open' ? { ...po, status: 'Sent' } : po);
+];
+
+// Process the POs once to avoid recalculation on every import
+const processedPOs = mockPOsRaw.map((po: PurchaseOrder) => po.status === 'Open' ? { ...po, status: 'Sent' } : po);
+
+export const mockPOs: PurchaseOrder[] = processedPOs;
 
 // Helper function to get locations from POs
 export const getLocationsFromPOs = (pos: PurchaseOrder[]) => {
@@ -1191,7 +1196,7 @@ export interface ScannedPOResult {
 }
 
 export const simulatePOScan = (code: string): ScannedPOResult => {
-  const po = mockPOs.find(p => p.number === code || p.number.includes(code));
+  const po = mockPOs.find((p: PurchaseOrder) => p.number === code || p.number.includes(code));
   
   if (!po) {
     return {

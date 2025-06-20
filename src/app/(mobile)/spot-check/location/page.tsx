@@ -83,6 +83,7 @@ export default function SpotCheckLocationPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [includeNotCount, setIncludeNotCount] = useState(false);
   const [selectedBU, setSelectedBU] = useState("All");
+  const [statusFilter, setStatusFilter] = useState<CountStatus | "all">("all");
   
   const router = useRouter();
 
@@ -94,14 +95,15 @@ export default function SpotCheckLocationPage() {
       location.bu.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesBU = selectedBU === "All" || location.bu === selectedBU;
+    const matchesStatus = statusFilter === "all" || location.countStatus === statusFilter;
     
     if (!includeNotCount) {
       // Only show locations with type "Count"
-      return matchesSearch && matchesBU && location.type === "Count";
+      return matchesSearch && matchesBU && matchesStatus && location.type === "Count";
     }
     
     // Include all locations when "Include Not Count" is checked
-    return matchesSearch && matchesBU;
+    return matchesSearch && matchesBU && matchesStatus;
   });
 
   // Group locations by status for better organization
@@ -177,34 +179,68 @@ export default function SpotCheckLocationPage() {
         <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 mb-3">
           <div className="flex items-center justify-between text-sm">
             <span className="text-blue-600 dark:text-blue-400 font-medium">Step 1: Location</span>
-            <span className="text-gray-500 dark:text-gray-400">Step 2: Method</span>
-            <span className="text-gray-500 dark:text-gray-400">Step 3: Items</span>
+            <span className="text-gray-500 dark:text-gray-400">Step 2: Method & Items</span>
           </div>
           <div className="w-full bg-gray-300 dark:bg-gray-600 rounded-full h-1 mt-2">
-            <div className="bg-blue-600 h-1 rounded-full" style={{ width: "33%" }}></div>
+            <div className="bg-blue-600 h-1 rounded-full" style={{ width: "50%" }}></div>
           </div>
         </div>
 
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          Step 1 of 3: Select Location
-        </p>
+
       </header>
 
       <main className="flex-1 p-4 flex flex-col gap-6">
-        {/* Quick Summary */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-center border border-blue-200 dark:border-blue-800">
+        {/* Status Filter Summary */}
+        <div className="grid grid-cols-4 gap-3">
+          <button
+            onClick={() => setStatusFilter("all")}
+            className={`rounded-lg p-3 text-center border transition-colors ${
+              statusFilter === "all"
+                ? "bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800"
+                : "bg-gray-50 border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:hover:bg-gray-600"
+            }`}
+          >
+            <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+              {filteredLocations.length + (statusFilter !== "all" ? mockLocations.filter(l => (includeNotCount ? true : l.type === "Count") && (selectedBU === "All" || l.bu === selectedBU)).length - filteredLocations.length : 0)}
+            </div>
+            <div className="text-xs text-gray-600 dark:text-gray-400">All</div>
+          </button>
+          
+          <button
+            onClick={() => setStatusFilter("in_progress")}
+            className={`rounded-lg p-3 text-center border transition-colors ${
+              statusFilter === "in_progress"
+                ? "bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800"
+                : "bg-gray-50 border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:hover:bg-gray-600"
+            }`}
+          >
             <div className="text-lg font-bold text-blue-700 dark:text-blue-300">{locationsByStatus.in_progress.length}</div>
             <div className="text-xs text-blue-600 dark:text-blue-400">In Progress</div>
-          </div>
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 text-center border border-gray-200 dark:border-gray-700">
+          </button>
+          
+          <button
+            onClick={() => setStatusFilter("not_started")}
+            className={`rounded-lg p-3 text-center border transition-colors ${
+              statusFilter === "not_started"
+                ? "bg-gray-50 border-gray-300 dark:bg-gray-800 dark:border-gray-600"
+                : "bg-gray-50 border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:hover:bg-gray-600"
+            }`}
+          >
             <div className="text-lg font-bold text-gray-700 dark:text-gray-300">{locationsByStatus.not_started.length}</div>
             <div className="text-xs text-gray-600 dark:text-gray-400">Not Started</div>
-          </div>
-          <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-center border border-green-200 dark:border-green-800">
+          </button>
+          
+          <button
+            onClick={() => setStatusFilter("completed")}
+            className={`rounded-lg p-3 text-center border transition-colors ${
+              statusFilter === "completed"
+                ? "bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800"
+                : "bg-gray-50 border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:hover:bg-gray-600"
+            }`}
+          >
             <div className="text-lg font-bold text-green-700 dark:text-green-300">{locationsByStatus.completed.length}</div>
             <div className="text-xs text-green-600 dark:text-green-400">Completed</div>
-          </div>
+          </button>
         </div>
 
         {/* Location Selection */}

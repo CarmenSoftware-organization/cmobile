@@ -25,6 +25,7 @@ export default function PhysicalCountPage() {
   const [selectedLocation, setSelectedLocation] = useState<number | null>(null);
   const [includeNotCount, setIncludeNotCount] = useState(false);
   const [selectedBU, setSelectedBU] = useState("All");
+  const [statusFilter, setStatusFilter] = useState<string>("All");
   const router = useRouter();
 
   // Get unique business units for the selector
@@ -34,11 +35,23 @@ export default function PhysicalCountPage() {
   
   // Show count locations and optionally not count locations
   const filteredLocations = mockLocations.filter(location => {
-    if (includeNotCount) {
-      return true; // Show all locations
-    }
-    return location.type === "Count"; // Only show count locations
+    const typeMatch = includeNotCount ? true : location.type === "Count";
+    const buMatch = selectedBU === "All" || location.bu === selectedBU;
+    const statusMatch = statusFilter === "All" || location.status === statusFilter;
+    
+    return typeMatch && buMatch && statusMatch;
   });
+
+  // Calculate status counts for the summary
+  const statusCounts = mockLocations.reduce((acc, location) => {
+    const typeMatch = includeNotCount ? true : location.type === "Count";
+    const buMatch = selectedBU === "All" || location.bu === selectedBU;
+    
+    if (typeMatch && buMatch) {
+      acc[location.status] = (acc[location.status] || 0) + 1;
+    }
+    return acc;
+  }, {} as Record<string, number>);
   
 
 
@@ -138,6 +151,68 @@ export default function PhysicalCountPage() {
               </p>
             </div>
           )}
+        </div>
+
+        {/* Status Filter Summary */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4">
+          <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-3">Count Status</h3>
+          <div className="grid grid-cols-4 gap-2">
+            <button
+              onClick={() => setStatusFilter("All")}
+              className={`p-3 rounded-lg border text-center transition-colors ${
+                statusFilter === "All"
+                  ? "bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800"
+                  : "bg-gray-50 border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:hover:bg-gray-600"
+              }`}
+            >
+              <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                {Object.values(statusCounts).reduce((a, b) => a + b, 0)}
+              </div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">All</div>
+            </button>
+            
+            <button
+              onClick={() => setStatusFilter("In-progress")}
+              className={`p-3 rounded-lg border text-center transition-colors ${
+                statusFilter === "In-progress"
+                  ? "bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800"
+                  : "bg-gray-50 border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:hover:bg-gray-600"
+              }`}
+            >
+              <div className="text-lg font-bold text-orange-700 dark:text-orange-300">
+                {statusCounts["In-progress"] || 0}
+              </div>
+              <div className="text-xs text-orange-600 dark:text-orange-400">In Progress</div>
+            </button>
+            
+            <button
+              onClick={() => setStatusFilter("Not Started")}
+              className={`p-3 rounded-lg border text-center transition-colors ${
+                statusFilter === "Not Started"
+                  ? "bg-gray-50 border-gray-300 dark:bg-gray-800 dark:border-gray-600"
+                  : "bg-gray-50 border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:hover:bg-gray-600"
+              }`}
+            >
+              <div className="text-lg font-bold text-gray-700 dark:text-gray-300">
+                {statusCounts["Not Started"] || 0}
+              </div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">Not Started</div>
+            </button>
+            
+            <button
+              onClick={() => setStatusFilter("Complete")}
+              className={`p-3 rounded-lg border text-center transition-colors ${
+                statusFilter === "Complete"
+                  ? "bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800"
+                  : "bg-gray-50 border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:hover:bg-gray-600"
+              }`}
+            >
+              <div className="text-lg font-bold text-green-700 dark:text-green-300">
+                {statusCounts["Complete"] || 0}
+              </div>
+              <div className="text-xs text-green-600 dark:text-green-400">Complete</div>
+            </button>
+          </div>
         </div>
 
         {/* Location Selection */}

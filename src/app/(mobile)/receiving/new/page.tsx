@@ -61,6 +61,8 @@ function NewGoodReceiveNotePage() {
   const searchParams = useSearchParams();
   const vendorIdParam = searchParams.get("vendorId");
   const skipVendorSelect = searchParams.get("skipVendorSelect") === "true";
+  const skipNewGRN = searchParams.get("skipNewGRN") === "true";
+  const addToGRN = searchParams.get("addToGRN") === "true";
   const isResume = skipVendorSelect && vendorIdParam;
   const [selectedVendor, setSelectedVendor] = useState<null | number>(
     isResume ? Number(vendorIdParam) : null
@@ -71,6 +73,16 @@ function NewGoodReceiveNotePage() {
   const [selectedDateRange, setSelectedDateRange] = useState<DateRange>({ from: undefined, to: undefined });
   const [selectedPOs, setSelectedPOs] = useState<number[]>([]);
   const [selectedBusinessUnit, setSelectedBusinessUnit] = useState<BusinessUnit | null>(null);
+  const [hasRedirected, setHasRedirected] = useState(false);
+
+  // Auto-redirect to scan mode if specific parameters are present
+  useEffect(() => {
+    if (addToGRN && skipNewGRN && skipVendorSelect && vendorIdParam && !hasRedirected) {
+      setHasRedirected(true);
+      // Use replace instead of push to avoid back navigation loop
+      router.replace('/receiving/scan-po');
+    }
+  }, [addToGRN, skipNewGRN, skipVendorSelect, vendorIdParam, hasRedirected, router]);
 
   // Get selected business unit from sessionStorage
   useEffect(() => {

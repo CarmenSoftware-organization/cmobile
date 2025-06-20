@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BusinessUnitLabel } from "@/components/ui/business-unit-label";
-import { CheckCircle, Package, FileText, Home } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import { useEffect, useState, Suspense } from "react";
 
 interface GRNConfirmationData {
@@ -116,92 +116,21 @@ function GRNConfirmationPage() {
         </div>
       </Card>
 
-      {/* Action Cards */}
-      <div className="space-y-3">
-        <h3 className="text-lg font-semibold">What&apos;s Next?</h3>
-        
-        {/* Continue to GRN List */}
-        <div 
-          className="cursor-pointer"
-          onClick={() => router.push('/receiving/grn-list')}
-        >
-          <Card className="p-4 hover:bg-muted transition-colors">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="bg-blue-500/10 p-2 rounded-lg">
-                  <FileText className="w-5 h-5 text-blue-500" />
-                </div>
-                <div>
-                  <h4 className="font-semibold">Manage GRNs</h4>
-                  <p className="text-sm text-muted-foreground">
-                    View and manage all your Good Receive Notes
-                  </p>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        {/* Create New Receiving */}
-        <div 
-          className="cursor-pointer"
-          onClick={() => router.push('/receiving/new')}
-        >
-          <Card className="p-4 hover:bg-muted transition-colors">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="bg-green-500/10 p-2 rounded-lg">
-                  <Package className="w-5 h-5 text-green-500" />
-                </div>
-                <div>
-                  <h4 className="font-semibold">Create New Good Receive Note</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Create more Good Receive Notes from purchase orders
-                  </p>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        {/* Back to Dashboard */}
-        <div 
-          className="cursor-pointer"
-          onClick={() => router.push('/dashboard')}
-        >
-          <Card className="p-4 hover:bg-muted transition-colors">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="bg-purple-500/10 p-2 rounded-lg">
-                  <Home className="w-5 h-5 text-purple-500" />
-                </div>
-                <div>
-                  <h4 className="font-semibold">Return to Dashboard</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Go back to the main dashboard
-                  </p>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
+      {/* Navigation Actions */}
       <div className="flex gap-3 pt-4">
         <Button 
           variant="outline" 
           className="flex-1"
-          onClick={() => router.push('/receiving')}
+          onClick={() => router.push('/receiving/scan-po')}
         >
-          Back to Good Receive Note
+          Back to Scan PO
         </Button>
         <Button 
           variant="default" 
           className="flex-1"
-          onClick={() => router.push('/receiving/grn-list')}
+          onClick={() => router.push('/dashboard')}
         >
-          View All GRNs
+          Dashboard
         </Button>
       </div>
     </div>

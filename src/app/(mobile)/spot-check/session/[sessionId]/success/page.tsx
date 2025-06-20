@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { CheckCircle2, Clock, MapPin, Calendar, BarChart3, TrendingUp, TrendingDown, AlertTriangle, FileText, Share2 } from "lucide-react";
+import { CheckCircle2, Clock, MapPin, Calendar, BarChart3, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
 
 export default function SpotCheckSuccessPage() {
   const params = useParams();
@@ -169,21 +169,7 @@ export default function SpotCheckSuccessPage() {
           </div>
         </div>
 
-        {/* Next Steps */}
-        {sessionResults.varianceItems > 0 && (
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
-            <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2 flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              Recommended Next Steps
-            </h3>
-            <div className="space-y-2 text-sm text-blue-800 dark:text-blue-200">
-              <div>• Review variance details and investigate root causes</div>
-              <div>• Update inventory records based on actual counts</div>
-              <div>• Consider additional spot checks for high-variance items</div>
-              <div>• Document any process improvements identified</div>
-            </div>
-          </div>
-        )}
+
 
         {/* Action Buttons */}
         <div className="space-y-3">
@@ -195,39 +181,12 @@ export default function SpotCheckSuccessPage() {
             Start New Spot Check
           </button>
           
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              className="py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-2"
-              onClick={() => router.push("/dashboard")}
-            >
-              Go to Dashboard
-            </button>
-            
-            <button
-              className="py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
-              onClick={async () => {
-                // Mock share functionality with proper error handling
-                if (navigator.share) {
-                  try {
-                    await navigator.share({
-                      title: `Spot Check Results - Session ${sessionId}`,
-                      text: `Completed spot check with ${sessionResults.accuracyRate}% accuracy. ${sessionResults.varianceItems} variances found.`,
-                    });
-                  } catch (error) {
-                    // Handle share cancellation or other errors silently
-                    // User likely cancelled the share dialog, which is normal behavior
-                    console.log('Share was cancelled or failed:', error);
-                  }
-                } else {
-                  // Fallback for browsers that don't support Web Share API
-                  alert('Sharing not supported on this device');
-                }
-              }}
-            >
-              <Share2 className="w-4 h-4" />
-              Share Results
-            </button>
-          </div>
+          <button
+            className="w-full py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-2"
+            onClick={() => router.push("/dashboard")}
+          >
+            Go to Dashboard
+          </button>
         </div>
 
         {/* Session ID Reference */}

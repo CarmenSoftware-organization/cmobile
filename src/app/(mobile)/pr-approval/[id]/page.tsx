@@ -59,6 +59,14 @@ type Item = {
   requiredDate: string;
   vendor: string;
   pricelistNumber: string;
+  businessDimensions?: {
+    projectCode?: string;
+    costCenter?: string;
+    marketSegment?: string;
+    event?: string;
+    department?: string;
+    region?: string;
+  };
 };
 
 const statusColor: Record<ItemStatus, string> = {
@@ -84,7 +92,7 @@ export default function PrApprovalDetailPage() {
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [originalItemsState, setOriginalItemsState] = useState<Item[]>([]); // Store original state for cancel functionality
   const [showTestPanel, setShowTestPanel] = useState(false);
-  const [reviewComment, setReviewComment] = useState("");
+
   const [sendbackStep, setSendbackStep] = useState<number>(0);
   const selectAllCheckboxRef = React.useRef<HTMLInputElement>(null);
 
@@ -130,7 +138,15 @@ export default function PrApprovalDetailPage() {
       location: "Main Kitchen",
       requiredDate: "2025-01-20",
       vendor: "Premium Coffee Suppliers Ltd",
-      pricelistNumber: "PL-COFFEE-2024-001"
+      pricelistNumber: "PL-COFFEE-2024-001",
+      businessDimensions: {
+        projectCode: "PROJ-2025-001",
+        costCenter: "CC-F&B-001",
+        marketSegment: "Corporate Events",
+        event: "Annual Conference 2025",
+        department: "Food & Beverage",
+        region: "Singapore East"
+      }
     },
     {
       id: 2,
@@ -169,7 +185,14 @@ export default function PrApprovalDetailPage() {
       location: "VIP Lounge",
       requiredDate: "2025-01-22",
       vendor: "Organic Tea Co Pte Ltd",
-      pricelistNumber: "PL-TEA-2024-002"
+      pricelistNumber: "PL-TEA-2024-002",
+      businessDimensions: {
+        projectCode: "PROJ-2025-002",
+        costCenter: "CC-VIP-001",
+        marketSegment: "VIP Services",
+        department: "Guest Relations",
+        region: "Singapore Central"
+      }
     },
     {
       id: 3,
@@ -404,13 +427,7 @@ export default function PrApprovalDetailPage() {
       return;
     }
 
-    // Validate comment requirement for return/rejection
-    if ((workflowAction === 'RETURN_FOR_REVIEW' || workflowAction === 'REJECT_PR') && !reviewComment.trim()) {
-      alert(workflowAction === 'RETURN_FOR_REVIEW' 
-        ? 'Please provide a comment explaining why items need review.' 
-        : 'Please provide a reason for rejecting this PR.');
-      return;
-    }
+
 
     setIsSubmitting(true);
     
@@ -421,17 +438,16 @@ export default function PrApprovalDetailPage() {
       // Log the action for debugging
       console.log('Workflow action:', workflowAction);
       console.log('Item statuses:', itemsState.map(item => ({ id: item.id, status: item.status })));
-      console.log('Comment:', reviewComment);
       console.log('Sendback step:', sendbackStep);
       
       // Show success message based on action
       switch (workflowAction) {
         case 'REJECT_PR':
-          alert(`PR rejected - all ${rejectedCount} items were rejected\nReason: ${reviewComment}`);
+          alert(`PR rejected - all ${rejectedCount} items were rejected`);
           break;
         case 'RETURN_FOR_REVIEW':
           const stepName = getWorkflowSteps().find(s => s.id === sendbackStep)?.label || 'Unknown';
-          alert(`PR returned for review to ${stepName} - ${reviewCount} item(s) need additional review\nComment: ${reviewComment}`);
+          alert(`PR returned for review to ${stepName} - ${reviewCount} item(s) need additional review`);
           break;
         case 'APPROVE_PR':
           alert(`PR fully approved - all ${approvedCount} items approved`);
@@ -442,7 +458,6 @@ export default function PrApprovalDetailPage() {
       }
       
       // Reset form state
-      setReviewComment("");
       setSendbackStep(0);
       
       // Navigate back to PR list
@@ -727,9 +742,7 @@ export default function PrApprovalDetailPage() {
 
             <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-600 dark:text-gray-400">
-                  <span className="font-medium">Workflow Stage:</span> {getWorkflowStageLabel(mockPR.workflowStage)}
-                </span>
+
                 <Badge className="text-xs px-2 py-0.5 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-700">
                   Return for review
                 </Badge>
@@ -893,12 +906,6 @@ export default function PrApprovalDetailPage() {
                       {item.vendor}
                     </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Pricelist #:</p>
-                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100 py-1">
-                      {item.pricelistNumber}
-                    </div>
-                  </div>
                 </div>
 
                 <div className="mt-3">
@@ -1030,14 +1037,52 @@ export default function PrApprovalDetailPage() {
                 </Card>
               </div>
 
-
-
-
-
-
-
-
-
+              {/* Business Dimensions Section */}
+              {selectedItem.businessDimensions && (
+                <div className="mb-4">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Business Dimensions</p>
+                  <Card className="p-3 bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600">
+                    <div className="space-y-3">
+                      {selectedItem.businessDimensions.projectCode && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Project Code:</span>
+                          <span className="text-xs font-medium text-gray-900 dark:text-gray-100">{selectedItem.businessDimensions.projectCode}</span>
+                        </div>
+                      )}
+                      {selectedItem.businessDimensions.costCenter && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Cost Center:</span>
+                          <span className="text-xs font-medium text-gray-900 dark:text-gray-100">{selectedItem.businessDimensions.costCenter}</span>
+                        </div>
+                      )}
+                      {selectedItem.businessDimensions.marketSegment && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Market Segment:</span>
+                          <span className="text-xs font-medium text-gray-900 dark:text-gray-100">{selectedItem.businessDimensions.marketSegment}</span>
+                        </div>
+                      )}
+                      {selectedItem.businessDimensions.event && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Event:</span>
+                          <span className="text-xs font-medium text-gray-900 dark:text-gray-100">{selectedItem.businessDimensions.event}</span>
+                        </div>
+                      )}
+                      {selectedItem.businessDimensions.department && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Department:</span>
+                          <span className="text-xs font-medium text-gray-900 dark:text-gray-100">{selectedItem.businessDimensions.department}</span>
+                        </div>
+                      )}
+                      {selectedItem.businessDimensions.region && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Region:</span>
+                          <span className="text-xs font-medium text-gray-900 dark:text-gray-100">{selectedItem.businessDimensions.region}</span>
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                </div>
+              )}
 
             </ScrollArea>
           )}
@@ -1127,44 +1172,81 @@ export default function PrApprovalDetailPage() {
 
       {/* On Hand Dialog */}
       <Dialog open={!!onHandItem} onOpenChange={() => setOnHandItem(null)}>
-        <DialogContent className="w-[375px] p-0 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-          <DialogHeader className="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-row items-center justify-between">
-            <DialogTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">On Hand by Location</DialogTitle>
-            <span className="text-xs font-semibold text-blue-700 dark:text-blue-400">BU: {mockPR.business_unit}</span>
+        <DialogContent className="w-[375px] p-0 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-xl">
+          <DialogHeader className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800">
+            <div className="flex flex-col items-start text-left space-y-2">
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-gray-100 text-left">
+                {onHandItem?.name || 'Product Name'}
+              </DialogTitle>
+              <div className="flex items-center space-x-2">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                  {onHandItem?.sku || 'SKU'}
+                </span>
+              </div>
+            </div>
           </DialogHeader>
           {onHandItem && (
-            <div className="p-4">
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-xs">
-                  <thead>
-                    <tr className="bg-gray-100 dark:bg-gray-700">
-                      <th className="px-2 py-1 text-left text-gray-900 dark:text-gray-100">Location</th>
-                      <th className="px-2 py-1 text-left text-gray-900 dark:text-gray-100">Qty</th>
-                      <th className="px-2 py-1 text-left text-gray-900 dark:text-gray-100">Min</th>
-                      <th className="px-2 py-1 text-left text-gray-900 dark:text-gray-100">Max</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {onHandItem.onHandData?.map((loc, idx) => (
-                      <tr key={idx} className="border-b border-gray-200 dark:border-gray-600">
-                        <td className="px-2 py-1 text-gray-900 dark:text-gray-100">{loc.name}</td>
-                        <td className="px-2 py-1 text-gray-900 dark:text-gray-100">{loc.qty_available}</td>
-                        <td className="px-2 py-1 text-gray-900 dark:text-gray-100">{loc.min_qty}</td>
-                        <td className="px-2 py-1 text-gray-900 dark:text-gray-100">{loc.max_qty}</td>
-                      </tr>
-                    ))}
-                    <tr className="border-t-2 border-gray-400 dark:border-gray-500 bg-gray-50 dark:bg-gray-600 font-semibold">
-                      <td className="px-2 py-1 text-gray-900 dark:text-gray-100">Total on Hand</td>
-                      <td className="px-2 py-1 text-gray-900 dark:text-gray-100">
-                        {onHandItem.onHandData?.reduce((sum, loc) => sum + (loc.qty_available || 0), 0) || 0}
-                      </td>
-                      <td className="px-2 py-1 text-gray-900 dark:text-gray-100">-</td>
-                      <td className="px-2 py-1 text-gray-900 dark:text-gray-100">-</td>
-                    </tr>
-                  </tbody>
-                </table>
+            <div className="p-6">
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                  Inventory by Location
+                </h3>
+                <div className="space-y-3">
+                  {onHandItem.onHandData?.map((loc, idx) => (
+                    <div key={idx} className="bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 p-4 hover:shadow-md transition-all duration-200">
+                      {/* First Level: Location and Available Quantity */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{loc.name}</span>
+                        </div>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                          {loc.qty_available} Available
+                        </span>
+                      </div>
+                      
+                      {/* Second Level: Min and Max */}
+                      <div className="grid grid-cols-3 gap-3 text-sm">
+                        <div>
+                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block">Min Qty</span>
+                          <span className="font-medium text-gray-900 dark:text-gray-100">{loc.min_qty}</span>
+                        </div>
+                        <div>
+                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block">Max Qty</span>
+                          <span className="font-medium text-gray-900 dark:text-gray-100">{loc.max_qty}</span>
+                        </div>
+                        <div>
+                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block">Last Counted</span>
+                          <span className="font-medium text-gray-900 dark:text-gray-100">{loc.last_counted}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {(onHandItem.onHandData?.length ?? 0) > 0 && (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg border-2 border-blue-200 dark:border-blue-700 p-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-gray-900 dark:text-gray-100">Total Available</span>
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-blue-100 text-blue-900 dark:bg-blue-800 dark:text-blue-100">
+                          {onHandItem.onHandData?.reduce((sum, loc) => sum + (loc.qty_available || 0), 0) || 0}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {!onHandItem.onHandData?.length && (
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 text-center">
+                      <span className="text-gray-500 dark:text-gray-400">No on-hand data available</span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <Button className="w-full mt-4 bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white" onClick={() => setOnHandItem(null)}>Close</Button>
+              <Button 
+                className="w-full h-12 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200" 
+                onClick={() => setOnHandItem(null)}
+              >
+                Close
+              </Button>
             </div>
           )}
         </DialogContent>
@@ -1174,38 +1256,72 @@ export default function PrApprovalDetailPage() {
 
       {/* On Order Dialog */}
       <Dialog open={!!onOrderItem} onOpenChange={() => setOnOrderItem(null)}>
-        <DialogContent className="w-[375px] p-0 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-          <DialogHeader className="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-row items-center justify-between">
-            <DialogTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">On Order</DialogTitle>
-            <span className="text-xs font-semibold text-blue-700 dark:text-blue-400">BU: {mockPR.business_unit}</span>
+        <DialogContent className="w-[375px] p-0 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-xl">
+          <DialogHeader className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-gray-800 dark:to-gray-800">
+            <div className="flex flex-col items-start text-left space-y-2">
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-gray-100 text-left">
+                {onOrderItem?.name || 'Product Name'}
+              </DialogTitle>
+              <div className="flex items-center space-x-2">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                  {onOrderItem?.sku || 'SKU'}
+                </span>
+              </div>
+            </div>
           </DialogHeader>
           {onOrderItem && (
-            <div className="p-4">
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-xs">
-                  <thead>
-                    <tr className="bg-gray-100 dark:bg-gray-700">
-                      <th className="px-2 py-1 text-left text-gray-900 dark:text-gray-100">PO Number</th>
-                      <th className="px-2 py-1 text-left text-gray-900 dark:text-gray-100">Vendor</th>
-                      <th className="px-2 py-1 text-left text-gray-900 dark:text-gray-100">Ordered Qty</th>
-                      <th className="px-2 py-1 text-left text-gray-900 dark:text-gray-100">Status</th>
-                      <th className="px-2 py-1 text-left text-gray-900 dark:text-gray-100">Delivery Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {onOrderItem.onOrderData?.map((po, idx) => (
-                      <tr key={idx} className="border-b border-gray-200 dark:border-gray-600">
-                        <td className="px-2 py-1 text-gray-900 dark:text-gray-100">{po.po_number}</td>
-                        <td className="px-2 py-1 text-gray-900 dark:text-gray-100">{po.vendor}</td>
-                        <td className="px-2 py-1 text-gray-900 dark:text-gray-100">{po.ordered_qty} {onOrderItem.inventoryUnit}</td>
-                        <td className="px-2 py-1 text-gray-900 dark:text-gray-100">{po.status === 'In Progress' ? 'Partial' : po.status === 'Completed' ? 'Sent' : po.status}</td>
-                        <td className="px-2 py-1 text-gray-900 dark:text-gray-100">{po.due_date}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <div className="p-6">
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
+                  Purchase Orders
+                </h3>
+                <div className="space-y-3">
+                  {onOrderItem.onOrderData?.map((po, idx) => (
+                    <div key={idx} className="bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 p-4 hover:shadow-md transition-all duration-200">
+                      {/* First Level: PO Number and Status */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{po.po_number}</span>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                            po.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' :
+                            po.status === 'Completed' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
+                            'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                          }`}>
+                            {po.status === 'In Progress' ? 'Partial' : po.status === 'Completed' ? 'Sent' : po.status}
+                          </span>
+                        </div>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300">
+                          {po.ordered_qty} {onOrderItem.inventoryUnit}
+                        </span>
+                      </div>
+                      
+                      {/* Second Level: Vendor and Due Date */}
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block">Vendor</span>
+                          <span className="font-medium text-gray-900 dark:text-gray-100">{po.vendor}</span>
+                        </div>
+                        <div>
+                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block">Due Date</span>
+                          <span className="font-medium text-gray-900 dark:text-gray-100">{po.due_date}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {!onOrderItem.onOrderData?.length && (
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 text-center">
+                      <span className="text-gray-500 dark:text-gray-400">No pending orders</span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <Button className="w-full mt-4 bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white" onClick={() => setOnOrderItem(null)}>Close</Button>
+              <Button 
+                className="w-full h-12 bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200" 
+                onClick={() => setOnOrderItem(null)}
+              >
+                Close
+              </Button>
             </div>
           )}
         </DialogContent>
@@ -1213,51 +1329,108 @@ export default function PrApprovalDetailPage() {
 
       {/* Price Comparison Dialog */}
       <Dialog open={!!priceCompareItem} onOpenChange={() => setPriceCompareItem(null)}>
-        <DialogContent className="w-[375px] p-0 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-          <DialogHeader className="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-row items-center justify-between">
-            <DialogTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">Price Comparison</DialogTitle>
-            <Button variant="ghost" size="sm" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100" onClick={() => setPriceCompareItem(null)}>Close</Button>
-          </DialogHeader>
-          {priceCompareItem && (
-            <div className="p-4">
-              <div className="mb-2">
-                <label className="text-xs font-medium mr-2 text-gray-900 dark:text-gray-100">Select Vendor:</label>
-                <select
-                  className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                  value={selectedVendor ?? priceCompareItem.selectedVendor}
-                  onChange={e => setSelectedVendor(e.target.value)}
-                >
-                  {priceCompareItem.vendorPrices.map(vp => (
-                    <option key={vp.vendor} value={vp.vendor}>{vp.vendor}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="mb-2">
-                <span className="text-xs text-gray-500 dark:text-gray-400">Selected Vendor Price: </span>
-                <span className="font-medium text-gray-900 dark:text-gray-100">$
-                  {priceCompareItem.vendorPrices.find(vp => vp.vendor === (selectedVendor ?? priceCompareItem.selectedVendor))?.price.toFixed(2) ?? '--'}
+        <DialogContent className="w-[375px] p-0 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-xl">
+          <DialogHeader className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-gray-800 dark:to-gray-800">
+            <div className="flex flex-row items-start justify-between w-full">
+              <div className="flex flex-col items-start text-left space-y-2">
+                <DialogTitle className="text-xl font-bold text-gray-900 dark:text-gray-100 text-left">Price Comparison</DialogTitle>
+                <p className="text-base font-medium text-gray-900 dark:text-gray-100 text-left">
+                  {priceCompareItem?.name || 'Product Name'}
+                </p>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                  {priceCompareItem?.sku || 'SKU'}
                 </span>
               </div>
-              <div>
-                <table className="min-w-full text-xs">
-                  <thead>
-                    <tr className="bg-gray-100 dark:bg-gray-700">
-                      <th className="px-2 py-1 text-left text-gray-900 dark:text-gray-100">Vendor</th>
-                      <th className="px-2 py-1 text-left text-gray-900 dark:text-gray-100">Price</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {priceCompareItem.vendorPrices.map((vp, idx) => (
-                      <tr key={idx} className="border-b border-gray-200 dark:border-gray-600">
-                        <td className="px-2 py-1 text-gray-900 dark:text-gray-100">{vp.vendor}</td>
-                        <td className="px-2 py-1 text-gray-900 dark:text-gray-100">
-                          ${vp.price.toFixed(2)} {vp.currency || priceCompareItem.currency}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <Button variant="ghost" size="sm" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 shrink-0" onClick={() => setPriceCompareItem(null)}>Close</Button>
+            </div>
+          </DialogHeader>
+          {priceCompareItem && (
+            <div className="p-6">
+              <div className="mb-6">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
+                  Vendor Selection
+                </h3>
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                  <div className="mb-3">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">Select Vendor:</label>
+                    <select
+                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      value={selectedVendor ?? priceCompareItem.selectedVendor}
+                      onChange={e => setSelectedVendor(e.target.value)}
+                    >
+                      {priceCompareItem.vendorPrices.map(vp => (
+                        <option key={vp.vendor} value={vp.vendor}>{vp.vendor}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Selected Price:</span>
+                    <span className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                      ${priceCompareItem.vendorPrices.find(vp => vp.vendor === (selectedVendor ?? priceCompareItem.selectedVendor))?.price.toFixed(2) ?? '--'}
+                    </span>
+                  </div>
+                </div>
               </div>
+
+              <div className="mb-6">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center">
+                  <div className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></div>
+                  Purchase History
+                </h3>
+                <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 border border-indigo-200 dark:border-indigo-800">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400 block mb-1">Last Vendor</span>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{priceCompareItem?.vendor || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400 block mb-1">Last Price</span>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">${priceCompareItem?.lastPurchasePrice?.toFixed(2) || 'N/A'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                  All Vendor Prices
+                </h3>
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full">
+                      <thead>
+                        <tr className="bg-gray-100 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Vendor</th>
+                          <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Price</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
+                        {priceCompareItem.vendorPrices.map((vp, idx) => (
+                          <tr key={idx} className={`hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+                            vp.vendor === (selectedVendor ?? priceCompareItem.selectedVendor) ? 'bg-purple-50 dark:bg-purple-900/20' : ''
+                          }`}>
+                            <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">{vp.vendor}</td>
+                            <td className="px-4 py-3 text-right">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                                ${vp.price.toFixed(2)} {vp.currency || priceCompareItem.currency}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <Button 
+                className="w-full h-12 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200" 
+                onClick={() => setPriceCompareItem(null)}
+              >
+                Close
+              </Button>
             </div>
           )}
         </DialogContent>
@@ -1312,24 +1485,7 @@ export default function PrApprovalDetailPage() {
                 </div>
               )}
 
-              {/* Comment Section for Return for Review */}
-              {(determineWorkflowAction() === 'RETURN_FOR_REVIEW' || determineWorkflowAction() === 'REJECT_PR') && (
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">
-                    {determineWorkflowAction() === 'RETURN_FOR_REVIEW' ? 'Return Comment:' : 'Rejection Reason:'}
-                  </label>
-                  <textarea
-                    value={reviewComment}
-                    onChange={(e) => setReviewComment(e.target.value)}
-                    placeholder={determineWorkflowAction() === 'RETURN_FOR_REVIEW' 
-                      ? "Please explain why these items need review..." 
-                      : "Please explain why this PR is being rejected..."
-                    }
-                    className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 min-h-[80px] resize-none"
-                    required
-                  />
-                </div>
-              )}
+
             </div>
 
             <div className="flex gap-3">

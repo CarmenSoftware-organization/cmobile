@@ -4,7 +4,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { mockPhysicalCountItems } from "@/mock/physicalCountData";
 import { FileAttachments, FileAttachment } from "@/components/ui/file-attachments";
-import { Save, Pause, CheckCircle, Clock, MapPin, Calendar, Plus, Minus, Calculator, X, Trash2, ChevronLeft, Search, Filter, ScanLine } from "lucide-react";
+import { CheckCircle, Clock, MapPin, Calendar, Plus, Minus, Calculator, X, Trash2, ChevronLeft, Search, Filter, ScanLine } from "lucide-react";
 
 interface PhysicalCountItem {
   sku: string;
@@ -81,9 +81,13 @@ export default function PhysicalCountEntryPage() {
   
   const [items, setItems] = useState<PhysicalCountItem[]>(initialItems);
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date>(new Date(sessionInfo.lastSaved));
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Initialize lastSaved on client side only to prevent hydration mismatch
+  useEffect(() => {
+    setLastSaved(new Date(sessionInfo.lastSaved));
+  }, [sessionInfo.lastSaved]);
 
   // Calculator dialog state
   const [showCalculatorDialog, setShowCalculatorDialog] = useState(false);
@@ -136,7 +140,7 @@ export default function PhysicalCountEntryPage() {
     setItems((prev) =>
       prev.map((item, i) =>
         i === idx
-          ? { ...item, actual: value, counted: true }
+          ? { ...item, actual: value, counted: value !== null && !isNaN(value) && value >= 0 }
           : item
       )
     );
@@ -388,32 +392,35 @@ export default function PhysicalCountEntryPage() {
   }).length;
 
   const handleSave = async (showFeedback = true) => {
-    setIsSaving(true);
-    
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     setLastSaved(new Date());
     setHasUnsavedChanges(false);
-    setIsSaving(false);
     
     if (showFeedback) {
       // Could show a toast notification here
     }
   };
 
-  const handlePause = async () => {
-    if (hasUnsavedChanges) {
-      await handleSave();
+  const handleSaveAndSubmit = async () => {
+    console.log('Save and Submit clicked');
+    console.log('Current countedItems:', countedItems, 'totalItems:', totalItems);
+    
+    try {
+      if (hasUnsavedChanges) {
+        console.log('Saving changes...');
+        await handleSave();
+      }
+      
+      const reviewUrl = `/physical-count/session/${sessionId}/review`;
+      console.log('Navigating to:', reviewUrl);
+      
+      // Use replace instead of push to ensure navigation
+      router.replace(reviewUrl);
+    } catch (error) {
+      console.error('Error in handleSaveAndSubmit:', error);
     }
-    router.push('/physical-count/sessions');
-  };
-
-  const handleProceed = async () => {
-    if (hasUnsavedChanges) {
-      await handleSave();
-    }
-    router.push(`/physical-count/session/${sessionId}/review`);
   };
 
   return (
@@ -461,7 +468,7 @@ export default function PhysicalCountEntryPage() {
           </span>
           <span className="flex items-center gap-1">
             <Clock className="w-3 h-3" />
-            Last saved: {lastSaved.toLocaleTimeString()}
+            Last saved: {lastSaved ? lastSaved.toLocaleTimeString() : '--:--:--'}
           </span>
         </div>
 
@@ -524,7 +531,7 @@ export default function PhysicalCountEntryPage() {
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <div className="font-semibold text-gray-900 dark:text-gray-100">{item.name}</div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">{item.sku}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">SKU: {item.sku}</div>
                 </div>
 
               </div>
@@ -606,43 +613,18 @@ export default function PhysicalCountEntryPage() {
           ))}
         </div>
 
-        {/* Action Buttons */}
+        {/* Action Button */}
         <div className="sticky bottom-0 bg-gray-50 dark:bg-gray-900 p-4 -mx-4 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex gap-3">
-            <button
-              className="flex-1 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-              onClick={() => handleSave(true)}
-              disabled={isSaving || !hasUnsavedChanges}
-            >
-              {isSaving ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4" />
-                  Save
-                </>
-              )}
-            </button>
-            
-            <button
-              className="flex-1 py-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
-              onClick={handlePause}
-            >
-              <Pause className="w-4 h-4" />
-              Pause
-            </button>
-            
-            <button
-              className="flex-1 py-3 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
-              onClick={handleProceed}
-            >
-              <CheckCircle className="w-4 h-4" />
-              Review
-            </button>
-          </div>
+          <button
+            className={`w-full py-3 ${countedItems >= totalItems 
+              ? 'bg-green-600 hover:bg-green-700' 
+              : 'bg-blue-700 hover:bg-blue-800'
+            } text-white rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors`}
+            onClick={handleSaveAndSubmit}
+          >
+            <CheckCircle className="w-4 h-4" />
+            {countedItems >= totalItems ? "Save and Submit" : "Save for Resume"}
+          </button>
           
           {hasUnsavedChanges && (
             <p className="text-xs text-yellow-600 dark:text-yellow-400 text-center mt-2">

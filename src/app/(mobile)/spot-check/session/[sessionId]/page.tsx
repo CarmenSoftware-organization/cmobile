@@ -119,8 +119,13 @@ export default function SpotCheckSessionPage() {
 
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date>(new Date());
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Initialize lastSaved on client side only to prevent hydration mismatch
+  useEffect(() => {
+    setLastSaved(new Date());
+  }, []);
 
   // Calculator dialog state
   const [showCalculatorDialog, setShowCalculatorDialog] = useState(false);
@@ -417,7 +422,7 @@ export default function SpotCheckSessionPage() {
           </span>
           <span className="flex items-center gap-1">
             <Clock className="w-3 h-3" />
-            Last saved: {lastSaved.toLocaleTimeString()}
+            Last saved: {lastSaved ? lastSaved.toLocaleTimeString() : '--:--:--'}
           </span>
         </div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -170,9 +170,11 @@ function GrnDetailPage() {
   }
 
   // Get selected POs - handle both scanned PO and traditional flow
-  const selectedPOs = scannedPO 
-    ? [scannedPO] 
-    : pos.filter(po => poIds.includes(po.id));
+  const selectedPOs = useMemo(() => {
+    return scannedPO 
+      ? [scannedPO] 
+      : pos.filter(po => poIds.includes(po.id));
+  }, [scannedPO, poIds]);
   
   // Parse selected locations for filtering
   const selectedLocationsList = locations ? locations.split(',').map(loc => loc.trim()) : [];
@@ -267,16 +269,21 @@ function GrnDetailPage() {
         const vendorObj = mockVendors.find(v => v.name === po.vendor);
         if (vendorObj) vendorId = String(vendorObj.id);
       }
-      // Only update if vendorId or businessUnit is not already set
-      if (grnFormData.vendorId !== vendorId || !grnFormData.businessUnit) {
-        setGrnFormData(prev => ({
+      
+      // Use functional update to avoid reading from current state
+      setGrnFormData(prev => {
+        // Only update if the values would actually change
+        if (prev.vendorId === vendorId && prev.businessUnit === (po.businessUnit || '')) {
+          return prev; // Return same object to prevent re-render
+        }
+        
+        return {
           ...prev,
           vendorId: vendorId,
           businessUnit: po.businessUnit || '',
-        }));
-      }
+        };
+      });
     }
-    // eslint-disable-next-line
   }, [existingGRN, selectedPOs]);
 
   // Handle form field changes
