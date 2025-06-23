@@ -229,11 +229,8 @@ function GrnDetailPage() {
     invoiceDate: '',
     invoiceNumber: existingGRN?.invoiceNumber || '',
     description: existingGRN?.notes || '',
-    receiver: existingGRN?.createdBy || '',
     vendorId: existingGRN?.vendorId || '',
     businessUnit: existingGRN?.businessUnit || selectedPOs[0]?.businessUnit || '',
-    isConsignment: false,
-    isCashPayment: false,
     currency: existingGRN?.currency || 'THB',
     exchangeRate: existingGRN?.summary?.exchangeRate || 1.00000
   });
@@ -247,11 +244,8 @@ function GrnDetailPage() {
         invoiceDate: '',
         invoiceNumber: existingGRN.invoiceNumber || '',
         description: existingGRN.notes || '',
-        receiver: existingGRN.createdBy || '',
         vendorId: existingGRN.vendorId || '',
         businessUnit: existingGRN.businessUnit || '',
-        isConsignment: false,
-        isCashPayment: false,
         currency: existingGRN.currency || 'THB',
         exchangeRate: existingGRN.summary?.exchangeRate || 1.00000
       });
@@ -580,91 +574,8 @@ function GrnDetailPage() {
       <Card className="p-4 mb-6">
         <h2 className="text-lg font-semibold mb-4">GRN Information</h2>
         <div className="space-y-4">
-          {/* Row 1: Ref# and Date */}
+          {/* Row 1: Vendor and Date */}
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">
-                Ref#
-              </label>
-              <input
-                type="text"
-                value={grnFormData.refNumber}
-                onChange={(e) => handleFormChange('refNumber', e.target.value)}
-                placeholder="Auto-generated"
-                className="w-full px-2 py-1.5 border border-input rounded-md bg-muted text-muted-foreground text-sm"
-                disabled
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">
-                Date *
-              </label>
-              <input
-                type="date"
-                value={grnFormData.date}
-                onChange={(e) => handleFormChange('date', e.target.value)}
-                className="w-full px-2 py-1.5 border border-input rounded-md text-sm"
-                required
-              />
-            </div>
-          </div>
-
-          {/* Row 2: Invoice# and Invoice Date */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">
-                Invoice#
-              </label>
-              <input
-                type="text"
-                value={grnFormData.invoiceNumber}
-                onChange={(e) => handleFormChange('invoiceNumber', e.target.value)}
-                placeholder="Enter invoice number"
-                className="w-full px-2 py-1.5 border border-input rounded-md text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">
-                Invoice Date
-              </label>
-              <input
-                type="date"
-                value={grnFormData.invoiceDate}
-                onChange={(e) => handleFormChange('invoiceDate', e.target.value)}
-                className="w-full px-2 py-1.5 border border-input rounded-md text-sm"
-              />
-            </div>
-          </div>
-
-          {/* Row 3: Description */}
-          <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-1">
-              Description
-            </label>
-            <textarea
-              value={grnFormData.description}
-              onChange={(e) => handleFormChange('description', e.target.value)}
-              placeholder="Enter details about this receiving entry"
-              className="w-full px-2 py-1.5 border border-input rounded-md text-sm"
-              rows={2}
-            />
-          </div>
-
-          {/* Row 4: Receiver and Vendor */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">
-                Receiver *
-              </label>
-              <input
-                type="text"
-                value={grnFormData.receiver}
-                onChange={(e) => handleFormChange('receiver', e.target.value)}
-                placeholder="Person/department receiving"
-                className="w-full px-2 py-1.5 border border-input rounded-md text-sm"
-                required
-              />
-            </div>
             <div>
               <label className="block text-sm font-medium text-muted-foreground mb-1">
                 Vendor *
@@ -683,66 +594,98 @@ function GrnDetailPage() {
                 ))}
               </select>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1">
+                Date *
+              </label>
+              <input
+                type="date"
+                value={grnFormData.date}
+                onChange={(e) => handleFormChange('date', e.target.value)}
+                className="w-full px-2 py-1.5 border border-input rounded-md text-sm"
+                required
+              />
+            </div>
           </div>
-
-          {/* Row 5: Consignment and Currency */}
+          {/* Row 2: Ref# and Invoice# */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-3">
-              <div>
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={grnFormData.isConsignment}
-                    onChange={(e) => handleFormChange('isConsignment', e.target.checked)}
-                    className="rounded border-input"
-                  />
-                  <span className="text-sm font-medium text-muted-foreground">
-                    Consignment
-                  </span>
-                </label>
-              </div>
-              <div>
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={grnFormData.isCashPayment}
-                    onChange={(e) => handleFormChange('isCashPayment', e.target.checked)}
-                    className="rounded border-input"
-                  />
-                  <span className="text-sm font-medium text-muted-foreground">
-                    Cash Payment
-                  </span>
-                </label>
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1">
+                Ref#
+              </label>
+              <input
+                type="text"
+                value={grnFormData.refNumber}
+                onChange={(e) => handleFormChange('refNumber', e.target.value)}
+                placeholder="Auto-generated"
+                className="w-full px-2 py-1.5 border border-input rounded-md bg-muted text-muted-foreground text-sm"
+                disabled
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-muted-foreground mb-1">
-                Currency & Rate
+                Invoice#
               </label>
-              <div className="space-y-2">
-                <select
-                  value={grnFormData.currency}
-                  onChange={(e) => handleFormChange('currency', e.target.value)}
-                  className="w-full px-2 py-1.5 border border-input rounded-md text-sm"
-                >
-                  <option value="THB">THB</option>
-                  <option value="USD">USD</option>
-                  <option value="SGD">SGD</option>
-                  <option value="EUR">EUR</option>
-                </select>
-                <input
-                  type="number"
-                  value={grnFormData.exchangeRate}
-                  onChange={(e) => handleFormChange('exchangeRate', parseFloat(e.target.value) || 1)}
-                  placeholder="1.00000"
-                  step="0.00001"
-                  min="0"
-                  className="w-full px-2 py-1.5 border border-input rounded-md text-sm"
-                />
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Rate: {grnFormData.exchangeRate.toFixed(5)}
-              </p>
+              <input
+                type="text"
+                value={grnFormData.invoiceNumber}
+                onChange={(e) => handleFormChange('invoiceNumber', e.target.value)}
+                placeholder="Enter invoice number"
+                className="w-full px-2 py-1.5 border border-input rounded-md text-sm"
+              />
+            </div>
+          </div>
+          {/* Row 3: Invoice Date */}
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-1">
+              Invoice Date
+            </label>
+            <input
+              type="date"
+              value={grnFormData.invoiceDate}
+              onChange={(e) => handleFormChange('invoiceDate', e.target.value)}
+              className="w-full px-2 py-1.5 border border-input rounded-md text-sm"
+            />
+          </div>
+          {/* Row 4: Description */}
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-1">
+              Description
+            </label>
+            <textarea
+              value={grnFormData.description}
+              onChange={(e) => handleFormChange('description', e.target.value)}
+              placeholder="Enter details about this receiving entry"
+              className="w-full px-2 py-1.5 border border-input rounded-md text-sm"
+              rows={2}
+            />
+          </div>
+          {/* Row 5: Currency/Rate */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1">Currency</label>
+              <select
+                value={grnFormData.currency}
+                onChange={(e) => handleFormChange('currency', e.target.value)}
+                className="w-full px-2 py-1.5 border border-input rounded-md text-sm"
+              >
+                <option value="THB">THB</option>
+                <option value="USD">USD</option>
+                <option value="SGD">SGD</option>
+                <option value="EUR">EUR</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1">Rate</label>
+              <input
+                type="number"
+                value={grnFormData.exchangeRate}
+                onChange={(e) => handleFormChange('exchangeRate', parseFloat(e.target.value) || 1)}
+                placeholder="1.00000"
+                step="0.00001"
+                min="0"
+                className="w-full px-2 py-1.5 border border-input rounded-md text-sm"
+              />
             </div>
           </div>
         </div>
@@ -1050,7 +993,7 @@ function GrnDetailPage() {
           className="w-full bg-green-600 hover:bg-green-700 text-white"
           onClick={handleSubmitGRN}
         >
-          Save Draft
+          Save
         </Button>
       </div>
       

@@ -251,7 +251,7 @@ export default function PrApprovalListPage() {
   const [prTypeFilter, setPrTypeFilter] = useState<string | null>(null);
   const [sort, setSort] = useState("date-desc");
   const [showOnlyActionable, setShowOnlyActionable] = useState(true);
-  const [showUserPanel, setShowUserPanel] = useState(true);
+  const [showUserPanel, setShowUserPanel] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
 
 

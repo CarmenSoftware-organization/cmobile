@@ -3,7 +3,6 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BusinessUnitLabel } from "@/components/ui/business-unit-label";
 import { CheckCircle } from "lucide-react";
 import { useEffect, useState, Suspense } from "react";
 
@@ -75,7 +74,7 @@ function GRNConfirmationPage() {
         <div className="flex items-center justify-between border-b border-border pb-4">
           <h2 className="text-lg font-semibold">GRN Details</h2>
           <span className="bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 px-3 py-1 rounded-full text-sm font-medium">
-            Draft
+            Saved
           </span>
         </div>
         
@@ -111,7 +110,7 @@ function GRNConfirmationPage() {
           
           <div className="flex justify-between items-center">
             <span className="text-sm font-medium">Business Unit:</span>
-            <BusinessUnitLabel assignedBusinessUnits={[{ id: 1, name: grnData.businessUnit }]} />
+            <span className="text-sm">{grnData.businessUnit}</span>
           </div>
         </div>
       </Card>
@@ -119,18 +118,11 @@ function GRNConfirmationPage() {
       {/* Navigation Actions */}
       <div className="flex gap-3 pt-4">
         <Button 
-          variant="outline" 
+          variant="default" 
           className="flex-1"
           onClick={() => router.push('/receiving/scan-po')}
         >
           Back to Scan PO
-        </Button>
-        <Button 
-          variant="default" 
-          className="flex-1"
-          onClick={() => router.push('/dashboard')}
-        >
-          Dashboard
         </Button>
       </div>
     </div>

@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-import { X, ChevronLeft, Calculator, Plus, Trash2 } from "lucide-react";
+import { X, ChevronLeft, Calculator } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -51,30 +51,6 @@ interface OnOrderData {
   dueDate: string;
 }
 
-interface CalculatorItem {
-  id: string;
-  name: string;
-  quantity: number;
-  unit: string;
-}
-
-const UNIT_CONVERSIONS: Record<string, number> = {
-  'g': 1,
-  'kg': 1000,
-  'mg': 0.001,
-  'L': 1000, // assuming 1L = 1kg for liquids
-  'mL': 1,
-  'pcs': 1, // assume 1 piece = 1 gram (default)
-  'box': 100, // assume 1 box = 100g (adjustable)
-  'case': 1000, // assume 1 case = 1kg (adjustable)
-  'bottle': 500, // assume 1 bottle = 500g (adjustable)
-  'pack': 50, // assume 1 pack = 50g (adjustable)
-  'ea': 1, // each = 1 unit
-  'btl': 500, // bottle = 500g
-  'cs': 1000, // case = 1kg
-  'lb': 453.592, // pound to grams
-};
-
 export default function StoreRequisitionDetailPage() {
   const params = useParams();
   const { id } = params;
@@ -83,15 +59,6 @@ export default function StoreRequisitionDetailPage() {
   const [showOnHand, setShowOnHand] = useState(false);
   const [showOnOrder, setShowOnOrder] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
-  
-  // Calculator dialog state
-  const [showCalculatorDialog, setShowCalculatorDialog] = useState(false);
-  const [currentCalculatorItemIndex, setCurrentCalculatorItemIndex] = useState<number | null>(null);
-  const [calculatorType, setCalculatorType] = useState<'approved' | 'issued'>('approved');
-  const [calculatorItems, setCalculatorItems] = useState<CalculatorItem[]>([]);
-  const [showNumberPad, setShowNumberPad] = useState(false);
-  const [activeCalculatorItemId, setActiveCalculatorItemId] = useState<string | null>(null);
-  const [numberPadValue, setNumberPadValue] = useState("");
   
   // New state for workflow logic
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -211,100 +178,6 @@ export default function StoreRequisitionDetailPage() {
     } else {
       setSelectedItems(requisition.items.map(item => item.id));
     }
-  };
-
-  // Calculate base total in grams for calculator
-  const baseTotalGrams = calculatorItems.reduce((total, item) => {
-    const conversionFactor = UNIT_CONVERSIONS[item.unit] || 1;
-    return total + (item.quantity * conversionFactor);
-  }, 0);
-
-  // Calculator Functions
-  const openCalculatorDialog = (itemIndex: number, type: 'approved' | 'issued') => {
-    const item = requisition.items[itemIndex];
-    const currentValue = type === 'approved' ? (item.approvedQty ?? item.requestedQty) : (item.issuedQty ?? 0);
-    
-    setCurrentCalculatorItemIndex(itemIndex);
-    setCalculatorType(type);
-    setCalculatorItems([{
-      id: '1',
-      name: item.name,
-      quantity: currentValue,
-      unit: item.unit
-    }]);
-    setShowCalculatorDialog(true);
-  };
-
-  const closeCalculatorDialog = () => {
-    setShowCalculatorDialog(false);
-    setCurrentCalculatorItemIndex(null);
-    setCalculatorType('approved');
-    setCalculatorItems([]);
-  };
-
-  const addCalculatorItem = () => {
-    const item = requisition.items[currentCalculatorItemIndex!];
-    const newId = (calculatorItems.length + 1).toString();
-    setCalculatorItems(prev => [...prev, {
-      id: newId,
-      name: `${item.name} (Part ${newId})`,
-      quantity: 0,
-      unit: item.unit
-    }]);
-  };
-
-  const removeCalculatorItem = (id: string) => {
-    setCalculatorItems(prev => prev.filter(item => item.id !== id));
-  };
-
-  const updateCalculatorItem = (id: string, field: keyof CalculatorItem, value: string | number) => {
-    setCalculatorItems(prev => prev.map(item => 
-      item.id === id ? { ...item, [field]: value } : item
-    ));
-  };
-
-  const openNumberPad = (itemId: string, currentValue: number) => {
-    setActiveCalculatorItemId(itemId);
-    setNumberPadValue(currentValue.toString());
-    setShowNumberPad(true);
-  };
-
-  const numberPadInput = (digit: string) => {
-    if (digit === 'clear') {
-      setNumberPadValue('');
-    } else if (digit === 'backspace') {
-      setNumberPadValue(prev => prev.slice(0, -1));
-    } else if (digit === '.' && numberPadValue.includes('.')) {
-      // Don't add another decimal point
-      return;
-    } else {
-      setNumberPadValue(prev => prev + digit);
-    }
-  };
-
-  const confirmNumberPad = () => {
-    const value = parseFloat(numberPadValue) || 0;
-    if (activeCalculatorItemId) {
-      updateCalculatorItem(activeCalculatorItemId, 'quantity', value);
-    }
-    setShowNumberPad(false);
-    setActiveCalculatorItemId(null);
-  };
-
-  const confirmCalculatorTotal = () => {
-    if (currentCalculatorItemIndex !== null) {
-      // Calculate total based on base unit (grams) and convert back to original unit
-      const item = requisition.items[currentCalculatorItemIndex];
-      const originalUnitConversion = UNIT_CONVERSIONS[item.unit] || 1;
-      const totalInOriginalUnit = baseTotalGrams / originalUnitConversion;
-      
-      if (calculatorType === 'approved') {
-        updateApprovedQuantity(item.id, totalInOriginalUnit.toString());
-      } else {
-        updateIssuedQuantity(item.id, totalInOriginalUnit.toString());
-      }
-    }
-    closeCalculatorDialog();
   };
 
   // Workflow logic functions (similar to PR Approval)
@@ -474,6 +347,59 @@ export default function StoreRequisitionDetailPage() {
     if (status === "Rejected" || status === "Cancel") return 1;
     return 0;
   }
+
+  // Add state for calculator dialog
+  const [showCalculatorDialog, setShowCalculatorDialog] = useState(false);
+  const [calculatorItemId, setCalculatorItemId] = useState<number | null>(null);
+  const [calculatorEntries, setCalculatorEntries] = useState([{ qty: '', unit: 'piece' }]);
+
+  // Hardcoded unit conversion rates
+  const UNIT_CONVERSIONS: Record<string, number> = {
+    box: 10,
+    pack: 5,
+    piece: 1,
+    kg: 1000,
+    g: 1,
+    lb: 453.592,
+    set: 1,
+    unit: 1,
+  };
+
+  // Add entry
+  const addCalculatorEntry = () => {
+    setCalculatorEntries([...calculatorEntries, { qty: '', unit: 'piece' }]);
+  };
+  // Remove entry
+  const removeCalculatorEntry = (idx: number) => {
+    setCalculatorEntries(calculatorEntries.filter((_, i) => i !== idx));
+  };
+  // Update entry
+  const updateCalculatorEntry = (idx: number, field: 'qty' | 'unit', value: string) => {
+    setCalculatorEntries(calculatorEntries.map((entry, i) =>
+      i === idx ? { ...entry, [field]: value } : entry
+    ));
+  };
+  // Calculate total in base unit
+  const calculatorTotal = calculatorEntries.reduce((sum, entry) => {
+    const qty = parseFloat(entry.qty) || 0;
+    const rate = UNIT_CONVERSIONS[entry.unit] || 1;
+    return sum + qty * rate;
+  }, 0);
+
+  // In openCalculatorDialog, reset calculatorEntries to one entry with current unit
+  const openCalculatorDialog = (itemId: number, currentQty: number | null, unit: string = 'piece') => {
+    setCalculatorItemId(itemId);
+    setCalculatorEntries([{ qty: currentQty?.toString() || '', unit }]);
+    setShowCalculatorDialog(true);
+  };
+
+  // In handleCalculatorConfirm, use calculatorTotal
+  const handleCalculatorConfirm = () => {
+    if (calculatorItemId !== null) {
+      updateIssuedQuantity(calculatorItemId, calculatorTotal.toString());
+    }
+    setShowCalculatorDialog(false);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
@@ -660,14 +586,6 @@ export default function StoreRequisitionDetailPage() {
                           min="0"
                           step="0.1"
                         />
-                        <button
-                          className="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors"
-                          onClick={() => openCalculatorDialog(requisition.items.findIndex(itm => itm.id === item.id), 'approved')}
-                          type="button"
-                          title="Detailed entry"
-                        >
-                          <Calculator className="w-3 h-3" />
-                        </button>
                         <span className="w-12 h-8 text-xs flex items-center px-1 text-gray-900 dark:text-gray-100">
                           {item.approvedUnit || item.unit}
                         </span>
@@ -684,14 +602,16 @@ export default function StoreRequisitionDetailPage() {
                           min="0"
                           step="0.1"
                         />
-                        <button
-                          className="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors"
-                          onClick={() => openCalculatorDialog(requisition.items.findIndex(itm => itm.id === item.id), 'issued')}
+                        <Button
                           type="button"
-                          title="Detailed entry"
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 p-0 text-blue-600 dark:text-blue-400"
+                          title="Calculator"
+                          onClick={() => openCalculatorDialog(item.id, item.issuedQty, item.issuedUnit || item.unit)}
                         >
-                          <Calculator className="w-3 h-3" />
-                        </button>
+                          <Calculator size={16} />
+                        </Button>
                         <span className="w-12 h-8 text-xs flex items-center px-1 text-gray-900 dark:text-gray-100">
                           {item.issuedUnit || item.unit}
                         </span>
@@ -984,196 +904,50 @@ export default function StoreRequisitionDetailPage() {
       )}
 
       {/* Calculator Dialog */}
-      {showCalculatorDialog && currentCalculatorItemIndex !== null && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              closeCalculatorDialog();
-            }
-          }}
-        >
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md max-h-[85vh] flex flex-col">
-            {/* Header */}
-            <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-750 rounded-t-xl">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  {calculatorType === 'approved' ? 'Approved' : 'Issued'} Quantity Calculator
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {requisition.items[currentCalculatorItemIndex].name}
-                </p>
-              </div>
-              <button
-                onClick={closeCalculatorDialog}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+      {showCalculatorDialog && (
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg max-w-xs w-full m-4">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Calculator</h3>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowCalculatorDialog(false)}>
+                <X size={16} />
+              </Button>
             </div>
-
-            {/* Calculator Items */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-4">
-              {calculatorItems.map((calcItem) => (
-                <div key={calcItem.id} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
-                  <div className="flex items-center justify-between mb-3">
-                    <input
-                      type="text"
-                      value={calcItem.name}
-                      onChange={(e) => updateCalculatorItem(calcItem.id, 'name', e.target.value)}
-                      className="text-sm font-medium bg-transparent border-none outline-none text-gray-900 dark:text-gray-100 flex-1"
-                      placeholder="Item name"
-                    />
-                  </div>
-                  
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => openNumberPad(calcItem.id, calcItem.quantity)}
-                      className="flex-1 px-4 py-3 bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded-lg text-center font-mono text-lg hover:bg-gray-50 dark:hover:bg-gray-500 transition-colors"
-                    >
-                      {calcItem.quantity || "0"}
-                    </button>
-                    
-                    <select
-                      value={calcItem.unit}
-                      onChange={(e) => updateCalculatorItem(calcItem.id, 'unit', e.target.value)}
-                      className="px-3 py-2 bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded-lg text-sm min-w-0 w-20"
-                    >
-                      {Object.keys(UNIT_CONVERSIONS).map(unit => (
-                        <option key={unit} value={unit}>{unit}</option>
-                      ))}
-                    </select>
-
-                    {calculatorItems.length > 1 && (
-                      <button
-                        onClick={() => removeCalculatorItem(calcItem.id)}
-                        className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                  
-                  {/* Show converted value */}
-                  <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-right">
-                    = {(calcItem.quantity * (UNIT_CONVERSIONS[calcItem.unit] || 1)).toFixed(2)}g
-                  </div>
+            <div className="p-4 space-y-3">
+              {calculatorEntries.map((entry, idx) => (
+                <div key={idx} className="flex gap-2 items-center mb-2">
+                  <input
+                    type="number"
+                    className="w-20 h-9 px-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-base"
+                    value={entry.qty}
+                    onChange={e => updateCalculatorEntry(idx, 'qty', e.target.value)}
+                    placeholder="Qty"
+                    min="0"
+                  />
+                  <select
+                    className="h-9 px-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                    value={entry.unit}
+                    onChange={e => updateCalculatorEntry(idx, 'unit', e.target.value)}
+                  >
+                    {Object.keys(UNIT_CONVERSIONS).map(unit => (
+                      <option key={unit} value={unit}>{unit}</option>
+                    ))}
+                  </select>
+                  {calculatorEntries.length > 1 && (
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => removeCalculatorEntry(idx)}>
+                      <X size={16} />
+                    </Button>
+                  )}
                 </div>
               ))}
-
-              {/* Add Item Button */}
-              <button
-                onClick={addCalculatorItem}
-                className="w-full py-3 border-2 border-dashed border-blue-300 dark:border-blue-600 rounded-xl text-blue-600 dark:text-blue-400 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-center gap-2 text-sm font-medium"
-              >
-                <Plus className="w-4 h-4" />
-                Add Another Unit
-              </button>
-            </div>
-
-            {/* Footer with Base Total */}
-            <div className="border-t border-gray-200 dark:border-gray-700 p-5 bg-gray-50 dark:bg-gray-750 rounded-b-xl">
-              <div className="flex justify-between items-center mb-4 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-700">
-                <span className="text-sm font-medium text-blue-900 dark:text-blue-100">Total Weight:</span>
-                <span className="text-lg font-bold text-blue-900 dark:text-blue-100">
-                  {baseTotalGrams.toFixed(2)}g
-                </span>
+              <Button variant="outline" className="w-full mb-2" onClick={addCalculatorEntry}>+ Add Entry</Button>
+              <div className="flex justify-between items-center mt-2">
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Total (base unit):</span>
+                <span className="text-lg font-bold text-blue-700 dark:text-blue-300">{calculatorTotal}</span>
               </div>
-              
-              <div className="flex gap-3">
-                <button
-                  onClick={closeCalculatorDialog}
-                  className="flex-1 py-3 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-semibold text-sm hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmCalculatorTotal}
-                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm transition-colors shadow-sm"
-                >
-                  Use This Total
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Number Pad Dialog */}
-      {showNumberPad && (
-        <div 
-          className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowNumberPad(false);
-            }
-          }}
-        >
-          <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-sm flex flex-col">
-            <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700">
-              <h4 className="text-base font-semibold text-gray-900 dark:text-gray-100">Enter Quantity</h4>
-              <button
-                onClick={() => setShowNumberPad(false)}
-                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="p-4 flex flex-col">
-              <div className="text-center mb-4">
-                <input
-                  type="text"
-                  value={numberPadValue}
-                  readOnly
-                  className="text-xl font-mono text-center border border-gray-300 dark:border-gray-600 rounded-lg p-3 w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                />
-              </div>
-
-              <div className="grid grid-cols-3 gap-3 mb-4">
-                {[1,2,3,4,5,6,7,8,9].map(num => (
-                  <button
-                    key={num}
-                    onClick={() => numberPadInput(num.toString())}
-                    className="h-14 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-lg font-semibold"
-                  >
-                    {num}
-                  </button>
-                ))}
-                <button
-                  onClick={() => numberPadInput('.')}
-                  className="h-14 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-lg font-semibold"
-                >
-                  .
-                </button>
-                <button
-                  onClick={() => numberPadInput('0')}
-                  className="h-14 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-lg font-semibold"
-                >
-                  0
-                </button>
-                <button
-                  onClick={() => numberPadInput('backspace')}
-                  className="h-14 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-lg font-semibold"
-                >
-                  ⌫
-                </button>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => numberPadInput('clear')}
-                  className="flex-1 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold"
-                >
-                  Clear
-                </button>
-                <button
-                  onClick={confirmNumberPad}
-                  className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-semibold"
-                >
-                  Confirm
-                </button>
-              </div>
+              <Button className="w-full mt-2" onClick={handleCalculatorConfirm}>
+                Set Issued Qty
+              </Button>
             </div>
           </div>
         </div>
