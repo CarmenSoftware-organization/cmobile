@@ -1389,20 +1389,24 @@ export default function PrApprovalDetailPage() {
                   <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
                   Selected
                 </h3>
-                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                  <div className="mb-3">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">Selected Vendor:</label>
-                    <span className="text-sm text-gray-900 dark:text-gray-100">{priceCompareItem.selectedVendor}</span>
-                  </div>
-                  <div className="mb-3">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">Order Unit:</label>
-                    <span className="text-sm text-gray-900 dark:text-gray-100">{priceCompareItem.unit}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Selected Price:</span>
-                    <span className="text-lg font-bold text-purple-600 dark:text-purple-400">
-                      ${priceCompareItem.vendorPrices.find(vp => vp.vendor === priceCompareItem.selectedVendor)?.price.toFixed(2) ?? '--'}
-                    </span>
+                <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 border border-indigo-200 dark:border-indigo-800">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400 block mb-1">Vendor</span>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{priceCompareItem.selectedVendor}</span>
+                    </div>
+                    <div className="col-span-2 mt-2 flex items-center gap-4">
+                      <div>
+                        <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400 block mb-1">Price</span>
+                        <span className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                          ${priceCompareItem.vendorPrices.find(vp => vp.vendor === priceCompareItem.selectedVendor)?.price.toFixed(2) ?? '--'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400 block mb-1">Order Unit</span>
+                        <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{priceCompareItem.unit}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
