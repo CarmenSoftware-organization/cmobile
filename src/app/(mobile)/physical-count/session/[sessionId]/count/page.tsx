@@ -119,12 +119,6 @@ export default function PhysicalCountEntryPage() {
   const totalItems = items.length;
   const progress = Math.round((countedItems / totalItems) * 100);
 
-  // Calculate base total in grams
-  const baseTotalGrams = calculatorItems.reduce((total, item) => {
-    const conversionFactor = UNIT_CONVERSIONS[item.unit] || 1;
-    return total + (item.quantity * conversionFactor);
-  }, 0);
-
   // Auto-save functionality
   useEffect(() => {
     if (hasUnsavedChanges) {
@@ -422,6 +416,12 @@ export default function PhysicalCountEntryPage() {
       console.error('Error in handleSaveAndSubmit:', error);
     }
   };
+
+  // Calculate base total in grams
+  const baseTotalGrams = calculatorItems.reduce((total, item) => {
+    const conversionFactor = UNIT_CONVERSIONS[item.unit] || 1;
+    return total + (item.quantity * conversionFactor);
+  }, 0);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
@@ -731,12 +731,11 @@ export default function PhysicalCountEntryPage() {
             {/* Footer with Base Total */}
             <div className="border-t border-gray-200 dark:border-gray-700 p-5 bg-gray-50 dark:bg-gray-750 rounded-b-xl">
               <div className="flex justify-between items-center mb-4 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-700">
-                <span className="text-sm font-medium text-blue-900 dark:text-blue-100">Total Weight:</span>
+                <span className="text-sm font-medium text-blue-900 dark:text-blue-100">Total:</span>
                 <span className="text-lg font-bold text-blue-900 dark:text-blue-100">
                   {baseTotalGrams.toFixed(2)}g
                 </span>
               </div>
-              
               <div className="flex gap-3">
                 <button
                   onClick={closeCalculatorDialog}

@@ -7,9 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import React from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Define types for items and inventory data
-interface Item {
+type Item = {
   id: number;
   name: string;
   sku: string;
@@ -31,9 +38,8 @@ interface Item {
     marketSegment?: string;
     event?: string;
   };
-  isEdited?: boolean;
   unitOptions?: string[];
-}
+};
 
 interface OnHandData {
   location: string;
@@ -51,6 +57,8 @@ interface OnOrderData {
   dueDate: string;
 }
 
+type ItemStatus = "Pending" | "Approved" | "Rejected" | "Review";
+
 export default function StoreRequisitionDetailPage() {
   const params = useParams();
   const { id } = params;
@@ -65,6 +73,11 @@ export default function StoreRequisitionDetailPage() {
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
 
   const [selectedItems, setSelectedItems] = useState<number[]>([]); // For bulk actions
+  
+  // Enhanced select logic state - from PR Approval
+  const [showBulkSelectDialog, setShowBulkSelectDialog] = useState(false);
+  const [bulkSelectOption, setBulkSelectOption] = useState<'all' | 'pending'>('all');
+  const selectAllCheckboxRef = React.useRef<HTMLInputElement>(null);
   
   // Mock data for the store requisition
   const [requisition, setRequisition] = useState({
@@ -99,7 +112,6 @@ export default function StoreRequisitionDetailPage() {
           marketSegment: "Food & Beverage",
           event: "Corporate Retreat"
         },
-        isEdited: false,
         unitOptions: ["kg", "g", "lb"]
       },
       {
@@ -121,7 +133,6 @@ export default function StoreRequisitionDetailPage() {
           marketSegment: "Executive Lounge", 
           event: "Daily Operations"
         },
-        isEdited: false,
         unitOptions: ["box", "pack", "piece"]
       }
     ] as Item[],
@@ -144,7 +155,7 @@ export default function StoreRequisitionDetailPage() {
   // Mock data for On Order information
   const onOrderData: Record<string, OnOrderData[]> = {
     "SKU11111": [
-      { poNumber: "PO-2023-089", vendor: "Global Foods", orderedQty: 50, status: "In Transit", dueDate: "2023-06-20" }
+      { poNumber: "PO-2023-089", vendor: "Global Foods", orderedQty: 50, status: "Partial", dueDate: "2023-06-20" }
     ],
     "SKU22222": [
       { poNumber: "PO-2023-092", vendor: "Gourmet Supplies", orderedQty: 24, status: "Ordered", dueDate: "2023-06-25" }
@@ -170,14 +181,21 @@ export default function StoreRequisitionDetailPage() {
     );
   };
 
-  // Toggle select all items
+  // Enhanced select logic with smart handling for pending vs all items
+  const pendingItems = requisition.items.filter(item => item.status === 'Pending');
+  const allSelected = selectedItems.length === requisition.items.length && requisition.items.length > 0;
+  const allPendingSelected = selectedItems.length === pendingItems.length && pendingItems.length > 0 && pendingItems.every(pItem => selectedItems.includes(pItem.id));
+
+  // Toggle select all items - shows bulk select dialog only when selecting
   const toggleSelectAll = () => {
-    const allSelected = selectedItems.length === requisition.items.length;
-    if (allSelected) {
+    // If items are currently selected, deselect all without dialog
+    if (selectedItems.length > 0) {
       setSelectedItems([]);
-    } else {
-      setSelectedItems(requisition.items.map(item => item.id));
+      return;
     }
+    
+    // If no items selected, show bulk select dialog
+    setShowBulkSelectDialog(true);
   };
 
   // Workflow logic functions (similar to PR Approval)
@@ -238,10 +256,10 @@ export default function StoreRequisitionDetailPage() {
   const getSubmitButtonText = () => {
     const workflowAction = determineWorkflowAction();
     switch (workflowAction.action) {
-      case 'approve': return 'Submit & Approve';
-      case 'reject': return 'Submit & Reject';
-      case 'return': return 'Submit & Return';
-      default: return 'Submit';
+      case 'approve': return 'Approve';
+      case 'reject': return 'Reject';
+      case 'return': return 'Return';
+      default: return 'Confirm';
     }
   };
 
@@ -258,61 +276,6 @@ export default function StoreRequisitionDetailPage() {
   const canSubmit = () => {
     const workflowAction = determineWorkflowAction();
     return workflowAction.action !== 'none';
-  };
-
-  // Check if any items have been edited
-  const hasEditedItems = () => {
-    return requisition.items.some(item => item.isEdited === true);
-  };
-
-  // Save changes - clear the edited flags
-  const handleSaveChanges = () => {
-    const updatedItems = requisition.items.map(item => ({
-      ...item,
-      isEdited: false
-    }));
-    setRequisition({ ...requisition, items: updatedItems });
-    // Update original state to current state
-    originalItemsStateRef.current = JSON.parse(JSON.stringify(updatedItems));
-  };
-
-  // Cancel changes - revert to original state
-  const handleCancelChanges = () => {
-    setRequisition({ ...requisition, items: JSON.parse(JSON.stringify(originalItemsStateRef.current)) });
-    setSelectedItem(null); // Close any open dialogs
-  };
-
-  // Function to set item status
-  const setItemStatus = (itemId: number, status: "Approved" | "Rejected" | "Review") => {
-    const updatedItems = requisition.items.map(item => 
-      item.id === itemId 
-        ? {
-            ...item,
-            status: status,
-            isEdited: false // Clear edited flag when status is set
-          }
-        : item
-    );
-    setRequisition({ ...requisition, items: updatedItems });
-  };
-
-  // Functions to update approved and issued quantities and units
-  const updateApprovedQuantity = (itemId: number, quantity: string) => {
-    const updatedItems = requisition.items.map(item => 
-      item.id === itemId 
-        ? { ...item, approvedQty: parseFloat(quantity) || 0, isEdited: true }
-        : item
-    );
-    setRequisition({ ...requisition, items: updatedItems });
-  };
-
-  const updateIssuedQuantity = (itemId: number, quantity: string) => {
-    const updatedItems = requisition.items.map(item => 
-      item.id === itemId 
-        ? { ...item, issuedQty: parseFloat(quantity) || 0, isEdited: true }
-        : item
-    );
-    setRequisition({ ...requisition, items: updatedItems });
   };
 
   // UseEffect to initialize original state
@@ -396,7 +359,12 @@ export default function StoreRequisitionDetailPage() {
   // In handleCalculatorConfirm, use calculatorTotal
   const handleCalculatorConfirm = () => {
     if (calculatorItemId !== null) {
-      updateIssuedQuantity(calculatorItemId, calculatorTotal.toString());
+      const updatedItems = requisition.items.map(item => 
+        item.id === calculatorItemId 
+          ? { ...item, issuedQty: parseFloat(calculatorTotal.toString()) || 0 }
+          : item
+      );
+      setRequisition({ ...requisition, items: updatedItems });
     }
     setShowCalculatorDialog(false);
   };
@@ -500,51 +468,105 @@ export default function StoreRequisitionDetailPage() {
       {/* Main Content */}
       <main className="flex-1 pb-20 px-4">
         <div>
-          <div className="flex items-center mb-4">
-            <input 
-              type="checkbox" 
-              checked={requisition.items.length > 0 && selectedItems.length === requisition.items.length} 
-              onChange={toggleSelectAll} 
-              className="mr-2 w-4 h-4 accent-blue-600" 
-            />
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-              Select all 
-              <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                ({requisition.items.length} items)
-              </span>
-            </h2>
+          <div className="flex items-center mb-4 gap-2">
+            <div className="flex items-center gap-2">
+              <input
+                ref={selectAllCheckboxRef}
+                type="checkbox"
+                checked={allSelected || (pendingItems.length > 0 && allPendingSelected)}
+                onChange={toggleSelectAll}
+                className="w-4 h-4 accent-blue-600 cursor-pointer"
+                aria-label="Bulk select options"
+              />
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                Select
+              </h2>
+            </div>
+          
+            {/* Selection Status Summary */}
+            <div className="text-xs text-gray-700 dark:text-gray-300">
+              {selectedItems.length === requisition.items.length && requisition.items.length > 0 ? (
+                <span>All items selected</span>
+              ) : selectedItems.length === pendingItems.length && pendingItems.length > 0 && selectedItems.every(id => pendingItems.map(i => i.id).includes(id)) ? (
+                <span>Only pending items selected</span>
+              ) : selectedItems.length === 0 ? (
+                <span>No items selected</span>
+              ) : (
+                <span>{selectedItems.length} item{selectedItems.length > 1 ? 's' : ''} selected</span>
+              )}
+            </div>
           </div>
+          
+          {/* Bulk Select Modal */}
+          <Dialog open={showBulkSelectDialog} onOpenChange={setShowBulkSelectDialog}>
+            <DialogContent className="w-[350px]">
+              <DialogHeader>
+                <DialogTitle>Bulk Select Items</DialogTitle>
+              </DialogHeader>
+              <div className="p-4">
+                <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">Choose an option to apply to all items.</p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id="bulk-all"
+                      name="bulk-select"
+                      checked={bulkSelectOption === 'all'}
+                      onChange={() => setBulkSelectOption('all')}
+                      className="w-4 h-4 accent-blue-600"
+                    />
+                    <label htmlFor="bulk-all" className="text-sm cursor-pointer text-gray-900 dark:text-gray-100">
+                      Select <b>All Items</b> <span className="text-xs text-gray-500 dark:text-gray-400">({requisition.items.length})</span>
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id="bulk-pending"
+                      name="bulk-select"
+                      checked={bulkSelectOption === 'pending'}
+                      onChange={() => setBulkSelectOption('pending')}
+                      className="w-4 h-4 accent-blue-600"
+                    />
+                    <label htmlFor="bulk-pending" className="text-sm cursor-pointer text-gray-900 dark:text-gray-100">
+                      Select <b>Only Pending Items</b> <span className="text-xs text-gray-500 dark:text-gray-400">({pendingItems.length})</span>
+                    </label>
+                  </div>
+                </div>
+                <div className="mt-6 flex gap-3 justify-end">
+                    <Button variant="ghost" onClick={() => setShowBulkSelectDialog(false)}>Cancel</Button>
+                    <Button
+                        onClick={() => {
+                            if (bulkSelectOption === 'all') {
+                                setSelectedItems(requisition.items.map(item => item.id));
+                            } else if (bulkSelectOption === 'pending') {
+                                setSelectedItems(pendingItems.map(item => item.id));
+                            }
+                            setShowBulkSelectDialog(false);
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                        Apply Selection
+                    </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {selectedItems.length > 0 && (
             <div className="flex gap-2 mb-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg items-center">
               <Button size="sm" className="bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 border border-blue-600 dark:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30" onClick={() => {
-                const updatedItems = requisition.items.map(item => 
-                  selectedItems.includes(item.id) ? { ...item, status: 'Approved' as const, isEdited: false } : item
-                );
+                const updatedItems = requisition.items.map(i => selectedItems.includes(i.id) ? { ...i, status: "Approved" as ItemStatus } : i);
                 setRequisition({ ...requisition, items: updatedItems });
-                setSelectedItems([]);
               }}>Approve</Button>
               <Button size="sm" className="bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600" onClick={() => {
-                const updatedItems = requisition.items.map(item => 
-                  selectedItems.includes(item.id) ? { ...item, status: 'Review' as const, isEdited: false } : item
-                );
+                const updatedItems = requisition.items.map(i => selectedItems.includes(i.id) ? { ...i, status: "Review" as ItemStatus } : i);
                 setRequisition({ ...requisition, items: updatedItems });
-                setSelectedItems([]);
               }}>Review</Button>
               <Button size="sm" className="bg-white dark:bg-gray-700 text-red-600 dark:text-red-400 border border-red-600 dark:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/30" onClick={() => {
-                const updatedItems = requisition.items.map(item => 
-                  selectedItems.includes(item.id) ? { ...item, status: 'Rejected' as const, isEdited: false } : item
-                );
+                const updatedItems = requisition.items.map(i => selectedItems.includes(i.id) ? { ...i, status: "Rejected" as ItemStatus } : i);
                 setRequisition({ ...requisition, items: updatedItems });
-                setSelectedItems([]);
               }}>Reject</Button>
-              <Button size="sm" className="bg-white dark:bg-gray-700 text-yellow-600 dark:text-yellow-400 border border-yellow-600 dark:border-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/30" onClick={() => {
-                const updatedItems = requisition.items.map(item => 
-                  selectedItems.includes(item.id) ? { ...item, status: 'Pending' as const, isEdited: false } : item
-                );
-                setRequisition({ ...requisition, items: updatedItems });
-                setSelectedItems([]);
-              }}>Reset</Button>
             </div>
           )}
 
@@ -560,11 +582,6 @@ export default function StoreRequisitionDetailPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {item.isEdited && (
-                      <Badge className="text-xs px-2 py-0.5 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-700">
-                        Edited
-                      </Badge>
-                    )}
                     <Badge className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs px-2 py-0.5">{item.status}</Badge>
                   </div>
                 </div>
@@ -582,7 +599,14 @@ export default function StoreRequisitionDetailPage() {
                           type="number"
                           className="w-16 h-8 text-xs border border-gray-300 dark:border-gray-600 rounded-md px-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                           value={item.approvedQty ?? item.requestedQty}
-                          onChange={(e) => updateApprovedQuantity(item.id, e.target.value)}
+                          onChange={(e) => {
+                            const updatedItems = requisition.items.map(i =>
+                              i.id === item.id
+                                ? { ...i, approvedQty: parseFloat(e.target.value) || 0 }
+                                : i
+                            );
+                            setRequisition({ ...requisition, items: updatedItems });
+                          }}
                           min="0"
                           step="0.1"
                         />
@@ -598,7 +622,14 @@ export default function StoreRequisitionDetailPage() {
                           type="number"
                           className="w-16 h-8 text-xs border border-gray-300 dark:border-gray-600 rounded-md px-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                           value={item.issuedQty ?? 0}
-                          onChange={(e) => updateIssuedQuantity(item.id, e.target.value)}
+                          onChange={(e) => {
+                            const updatedItems = requisition.items.map(i =>
+                              i.id === item.id
+                                ? { ...i, issuedQty: parseFloat(e.target.value) || 0 }
+                                : i
+                            );
+                            setRequisition({ ...requisition, items: updatedItems });
+                          }}
                           min="0"
                           step="0.1"
                         />
@@ -629,13 +660,22 @@ export default function StoreRequisitionDetailPage() {
 
                 <div className="mt-3">
                   <div className="grid grid-cols-3 gap-2 mt-3">
-                    <Button size="sm" className="bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 border border-blue-600 dark:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 !rounded-button" onClick={() => setItemStatus(item.id, 'Approved')}>
+                    <Button size="sm" className="bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 border border-blue-600 dark:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 !rounded-button" onClick={() => {
+                      const updatedItems = requisition.items.map(i => i.id === item.id ? { ...i, status: 'Approved' as ItemStatus } : i);
+                      setRequisition({ ...requisition, items: updatedItems });
+                    }}>
                       Approve
                     </Button>
-                    <Button size="sm" className="bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 !rounded-button" onClick={() => setItemStatus(item.id, 'Review')}>
+                    <Button size="sm" className="bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 !rounded-button" onClick={() => {
+                      const updatedItems = requisition.items.map(i => i.id === item.id ? { ...i, status: 'Review' as ItemStatus } : i);
+                      setRequisition({ ...requisition, items: updatedItems });
+                    }}>
                       Review
                     </Button>
-                    <Button size="sm" className="bg-white dark:bg-gray-700 text-red-600 dark:text-red-400 border border-red-600 dark:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 !rounded-button" onClick={() => setItemStatus(item.id, 'Rejected')}>
+                    <Button size="sm" className="bg-white dark:bg-gray-700 text-red-600 dark:text-red-400 border border-red-600 dark:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 !rounded-button" onClick={() => {
+                      const updatedItems = requisition.items.map(i => i.id === item.id ? { ...i, status: 'Rejected' as ItemStatus } : i);
+                      setRequisition({ ...requisition, items: updatedItems });
+                    }}>
                       Reject
                     </Button>
                   </div>
@@ -686,26 +726,19 @@ export default function StoreRequisitionDetailPage() {
           </div>
         </div>
         {/* Conditional Button Display */}
-        {hasEditedItems() ? (
-          <div className="flex gap-3">
-            <button 
-              className="flex-1 h-12 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-md"
-              onClick={handleCancelChanges}
-            >
-              Cancel Changes
-            </button>
-            <button 
-              className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md"
-              onClick={handleSaveChanges}
-            >
-              Save Changes
-            </button>
-          </div>
-        ) : (
+        {canSubmit() ? (
           <button 
             className={`w-full h-12 text-white font-medium rounded-md ${getSubmitButtonColor()}`}
             onClick={() => setShowSubmitDialog(true)}
-            disabled={!canSubmit() || isSubmitting}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Submitting...' : getSubmitButtonText()}
+          </button>
+        ) : (
+          <button 
+            className="w-full h-12 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-md"
+            onClick={() => setShowSubmitDialog(true)}
+            disabled={isSubmitting}
           >
             {isSubmitting ? 'Submitting...' : getSubmitButtonText()}
           </button>
@@ -774,65 +807,90 @@ export default function StoreRequisitionDetailPage() {
       {/* On Hand Modal */}
       {showOnHand && selectedItem && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50">
-          <div className="bg-card text-card-foreground border border-border rounded-lg max-w-sm w-full max-h-[80vh] overflow-auto m-4">
-            <div className="p-4 border-b border-border flex justify-between items-center">
-              <div>
-                <h3 className="font-bold">{selectedItem.name}</h3>
-                <p className="text-xs text-muted-foreground">{selectedItem.sku}</p>
-              </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-sm w-full max-h-[90vh] overflow-hidden m-4 shadow-xl">
+            {/* Header with close button */}
+            <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">On Hand Details</h3>
               <Button 
-                variant="secondary" 
+                variant="ghost" 
                 size="icon" 
-                className="h-8 w-8 rounded-full"
+                className="h-8 w-8 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                 onClick={() => setShowOnHand(false)}
               >
                 <X size={16} />
               </Button>
             </div>
-            <div className="p-4">
-              <div className="space-y-3">
-                {onHandData[selectedItem.sku]?.map((row, index) => (
-                  <div key={index} className="bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 p-4 hover:shadow-md transition-all duration-200">
-                    {/* First Level: Location and Available Quantity */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{row.location}</span>
+
+            {/* Product Info Section */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">
+                {selectedItem.name}
+              </h2>
+              <div className="flex items-center gap-4">
+                <span className="inline-flex items-center px-2 py-1 rounded-md text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">
+                  {selectedItem.sku}
+                </span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  Inventory Unit: {selectedItem.unit}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              {/* Inventory by Location Section */}
+              <div className="p-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <h3 className="text-base font-semibold text-gray-700 dark:text-gray-300">
+                    Inventory by Location
+                  </h3>
+                </div>
+
+                <div className="space-y-3">
+                  {onHandData[selectedItem.sku]?.map((row, index) => (
+                    <div key={index} className="bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 p-4 shadow-sm">
+                      {/* Location and Available Quantity */}
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-base font-semibold text-blue-600 dark:text-blue-400">
+                          {row.location}
+                        </span>
+                        <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-bold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                          {row.qtyAvailable}
+                        </span>
                       </div>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-                        {row.qtyAvailable} Available
-                      </span>
-                    </div>
-                    
-                    {/* Second Level: Min and Max */}
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block">Min Qty</span>
-                        <span className="font-medium text-gray-900 dark:text-gray-100">{row.min}</span>
-                      </div>
-                      <div>
-                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block">Max Qty</span>
-                        <span className="font-medium text-gray-900 dark:text-gray-100">{row.max}</span>
+                      
+                      {/* Min and Max */}
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Min Qty</span>
+                          <span className="font-semibold text-gray-900 dark:text-gray-100">{row.min}</span>
+                        </div>
+                        <div>
+                          <span className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Max Qty</span>
+                          <span className="font-semibold text-gray-900 dark:text-gray-100">{row.max}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-                
-                {onHandData[selectedItem.sku]?.length > 0 && (
-                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg border-2 border-blue-200 dark:border-blue-700 p-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-gray-900 dark:text-gray-100">Total Available</span>
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-blue-100 text-blue-900 dark:bg-blue-800 dark:text-blue-100">
-                        {onHandData[selectedItem.sku]?.reduce((sum, row) => sum + row.qtyAvailable, 0)}
-                      </span>
+                  ))}
+
+                  {/* Total Section */}
+                  {onHandData[selectedItem.sku]?.length > 0 && (
+                    <div className="bg-blue-100 dark:bg-blue-900/30 rounded-lg border-2 border-blue-200 dark:border-blue-700 p-4 mt-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-base font-bold text-gray-900 dark:text-gray-100">Total</span>
+                        <span className="text-2xl font-bold text-blue-700 dark:text-blue-300">
+                          {onHandData[selectedItem.sku]?.reduce((sum, row) => sum + row.qtyAvailable, 0)}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                )}
-                
-                {!onHandData[selectedItem.sku]?.length && (
-                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 text-center">
-                    <span className="text-gray-500 dark:text-gray-400">No on-hand data available</span>
-                  </div>
-                )}
+                  )}
+                  
+                  {!onHandData[selectedItem.sku]?.length && (
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 text-center">
+                      <span className="text-gray-500 dark:text-gray-400">No on-hand data available</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -842,61 +900,83 @@ export default function StoreRequisitionDetailPage() {
       {/* On Order Modal */}
       {showOnOrder && selectedItem && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50">
-          <div className="bg-card text-card-foreground border border-border rounded-lg max-w-sm w-full max-h-[80vh] overflow-auto m-4">
-            <div className="p-4 border-b border-border flex justify-between items-center">
-              <div>
-                <h3 className="font-bold">{selectedItem.name}</h3>
-                <p className="text-xs text-muted-foreground">{selectedItem.sku}</p>
-              </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-sm w-full max-h-[90vh] overflow-hidden m-4 shadow-xl">
+            {/* Header with close button */}
+            <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-red-600 dark:text-red-400">On Order Details</h3>
               <Button 
-                variant="secondary" 
+                variant="ghost" 
                 size="icon" 
-                className="h-8 w-8 rounded-full"
+                className="h-8 w-8 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                 onClick={() => setShowOnOrder(false)}
               >
                 <X size={16} />
               </Button>
             </div>
-            <div className="p-4">
-              <div className="space-y-3">
-                {onOrderData[selectedItem.sku]?.map((row, index) => (
-                  <div key={index} className="bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 p-4 hover:shadow-md transition-all duration-200">
-                    {/* First Level: PO Number, Status, and Quantity */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{row.poNumber}</span>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                          row.status === 'Confirmed' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
-                          row.status === 'Pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' :
-                          'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
-                        }`}>
-                          {row.status}
+
+            {/* Product Info Section */}
+            <div className="bg-gray-50 dark:bg-gray-900/30 p-4 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">
+                {selectedItem.name}
+              </h2>
+              <span className="inline-flex items-center px-2 py-1 rounded-md text-sm font-medium bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                {selectedItem.sku}
+              </span>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              {/* Purchase Orders Section */}
+              <div className="p-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                  <h3 className="text-base font-semibold text-gray-700 dark:text-gray-300">
+                    Purchase Orders
+                  </h3>
+                </div>
+
+                <div className="space-y-3">
+                  {onOrderData[selectedItem.sku]?.map((row, index) => (
+                    <div key={index} className="bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 p-4 shadow-sm">
+                      {/* PO Number, Status, and Quantity */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base font-semibold text-blue-600 dark:text-blue-400">
+                            {row.poNumber}
+                          </span>
+                          <span className={`px-2 py-1 rounded-md text-xs font-medium ${
+                            row.status === 'Confirmed' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
+                            row.status === 'Partial' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' :
+                            row.status === 'Sent' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
+                            'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
+                          }`}>
+                            {row.status}
+                          </span>
+                        </div>
+                        <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-bold bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300">
+                          {row.orderedQty} {selectedItem.unit}
                         </span>
                       </div>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300">
-                        {row.orderedQty} Ordered
-                      </span>
-                    </div>
-                    
-                    {/* Second Level: Vendor and Due Date */}
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block">Vendor</span>
-                        <span className="font-medium text-gray-900 dark:text-gray-100">{row.vendor}</span>
-                      </div>
-                      <div>
-                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block">Due Date</span>
-                        <span className="font-medium text-gray-900 dark:text-gray-100">{row.dueDate}</span>
+                      
+                      {/* Vendor and Delivery Date */}
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Vendor</span>
+                          <span className="font-semibold text-gray-900 dark:text-gray-100">{row.vendor}</span>
+                        </div>
+                        <div>
+                          <span className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Delivery Date</span>
+                          <span className="font-semibold text-gray-900 dark:text-gray-100">{row.dueDate}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-                
-                {!onOrderData[selectedItem.sku]?.length && (
-                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 text-center">
-                    <span className="text-gray-500 dark:text-gray-400">No pending orders</span>
-                  </div>
-                )}
+                  ))}
+                  
+                  {!onOrderData[selectedItem.sku]?.length && (
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 text-center">
+                      <span className="text-gray-500 dark:text-gray-400">No pending orders</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

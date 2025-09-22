@@ -3,7 +3,7 @@
 
 ## Document Information
 - Version: 2.3
-- Date: January 2025 (Updated with critical PR approval workflow logic fix, page enhancements, workflow status clarifications, and current app state)
+- Date: June 24, 2025 (Updated with critical PR approval workflow logic fix, page enhancements, workflow status clarifications, and current app state)
 - Product: Carmen Software Supply Chain Mobile App
 - Target Industry: Hotels and Hospitality
 - Document Type: Product Requirements Document (PRD)
@@ -52,7 +52,7 @@ A mobile-first tool that brings real-time, compliant, auditable supply chain man
 - Complete audit trail for all transactions
 - Real-time inventory visibility and control
 
-### 1.5 Recent Enhancements (January 2025)
+### 1.5 Recent Enhancements (June 2025)
 
 #### PR Approval Page Interface Modernization
 - **Advanced Search Filter Integration**: Moved Filters button to same row as search bar and converted to icon-only display with notification dot for active filters count
@@ -71,7 +71,7 @@ A mobile-first tool that brings real-time, compliant, auditable supply chain man
 - **Business Unit Standardization**: Grand Hotel Singapore, Business Hotel Jakarta, Boutique Hotel Bangkok
 - **Workflow Stage Definitions**: Draft (0), HOD Review (1), Finance Review (2), Vendor Allocation (3), Approved (4), Rejected (-1), Cancelled (-3)
 
-#### Critical PR Approval Workflow Logic Fix (January 2025)
+#### Critical PR Approval Workflow Logic Fix (June 2025)
 - **Issue Resolved**: Fixed partial approval logic that incorrectly enabled submit button when pending items existed
 - **Technical Fix**: Moved pending items check to higher priority in `determineWorkflowAction()` function
 - **Before**: Approving one item while others were pending would show "Partial Approval" and enable submit button
@@ -80,7 +80,7 @@ A mobile-first tool that brings real-time, compliant, auditable supply chain man
 - **Implementation**: Priority logic now checks for pending items before checking for partial approvals
 - **User Experience**: Clear visual feedback with "Review Required" status when pending items exist
 
-#### Multi-Currency PR Support Implementation (January 2025)
+#### Multi-Currency PR Support Implementation (June 2025)
 - **Feature**: Complete multi-currency support for Purchase Requisitions (PRs) showing both document currency and base currency throughout the approval workflow.
 - **Technical Implementation**:
   - **Enhanced PR Interface**: Added `currency`, `exchangeRate`, `baseCurrency`, `baseValue` fields
@@ -2380,7 +2380,7 @@ This comprehensive Product Requirements Document for the Carmen Supply Chain Mob
 4. **Enhanced Workflow Logic**: Priority-based decision engine with clear Document vs Item status distinction
 5. **Modern Interface Design**: Clean, efficient interfaces with reduced visual clutter and improved accessibility
 
-### Recent Achievements (January 2025)
+### Recent Achievements (June 2025)
 
 1. **PR Approval Modernization**: Successfully implemented enhanced filtering, sorting, and interface improvements
 2. **Workflow Clarification**: Established clear distinction between Document Status and Item Status with priority-based logic

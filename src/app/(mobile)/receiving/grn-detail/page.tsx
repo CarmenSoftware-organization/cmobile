@@ -607,11 +607,11 @@ function GrnDetailPage() {
               />
             </div>
           </div>
-          {/* Row 2: Ref# and Invoice# */}
+          {/* Row 2: GRN# and Invoice# */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-muted-foreground mb-1">
-                Ref#
+                GRN#
               </label>
               <input
                 type="text"
@@ -925,6 +925,55 @@ function GrnDetailPage() {
         
         {tab === 'summary' && (
           <Card className="p-4 bg-card text-card-foreground">
+            {/* Item Summary Section */}
+            <div className="mb-6">
+              <div className="font-medium mb-3">Item Summary</div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs border border-border">
+                  <thead>
+                    <tr className="bg-muted text-muted-foreground">
+                      <th className="p-2 text-left font-semibold">SKU</th>
+                      <th className="p-2 text-left font-semibold">Product Name</th>
+                      <th className="p-2 text-center font-semibold">Total Qty</th>
+                      <th className="p-2 text-center font-semibold">Unit</th>
+                      <th className="p-2 text-right font-semibold">Price</th>
+                      <th className="p-2 text-right font-semibold">Total Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {grnItems.map((item, index) => {
+                      // Calculate total quantity (received + FOC)
+                      const receivedQty = Number(item.receivedQty) || 0;
+                      const focQty = Number(item.focQty) || 0;
+                      const totalQty = receivedQty + focQty;
+
+                      // Get price from original PO data
+                      const originalItem = selectedPOs.flatMap(po => po.items).find(poItem => poItem.sku === item.sku);
+                      const unitPrice = originalItem?.price || 0;
+                      const totalPrice = receivedQty * unitPrice; // Only calculate for received qty, not FOC
+
+                      return (
+                        <tr key={`${item.sku}-${index}`} className="border-t border-border">
+                          <td className="p-2 font-mono text-xs">{item.sku}</td>
+                          <td className="p-2">{item.product}</td>
+                          <td className="p-2 text-center">{totalQty}</td>
+                          <td className="p-2 text-center">{item.receivedUnit}</td>
+                          <td className="p-2 text-right">{unitPrice.toFixed(2)}</td>
+                          <td className="p-2 text-right">{totalPrice.toFixed(2)}</td>
+                        </tr>
+                      );
+                    })}
+                    {grnItems.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="p-4 text-center text-muted-foreground">No items in this GRN</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Financial Summary Section */}
             <div className="mt-6">
               <div className="font-medium mb-1">Financial Summary</div>
               <div className="overflow-x-auto">

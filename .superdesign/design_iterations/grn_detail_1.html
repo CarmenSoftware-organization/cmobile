@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GRN Detail - Carmen Supply Chain</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    spacing: {
+                        '1': '4px',
+                        '2': '8px',
+                        '3': '12px',
+                        '4': '16px',
+                        '5': '20px',
+                        '6': '24px',
+                        '8': '32px',
+                        '10': '40px',
+                        '12': '48px',
+                        '16': '64px',
+                    },
+                    colors: {
+                        primary: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .tab-active {
+            border-bottom: 2px solid #1e293b;
+            color: #1e293b;
+        }
+        .tab-inactive {
+            color: #64748b;
+        }
+        .quantity-input {
+            width: 64px;
+            text-align: center;
+        }
+        .quantity-btn {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #e2e8f0;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .quantity-btn:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+        .quantity-btn:active {
+            background: #e2e8f0;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans">
+    <!-- Header Section -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div class="px-4 py-3">
+            <!-- Breadcrumb -->
+            <nav class="text-sm text-gray-500 mb-2">
+                <span>Receiving</span> 
+                <span class="mx-2">/</span> 
+                <span class="text-gray-900">GRN Detail</span>
+            </nav>
+            
+            <!-- GRN Header -->
+            <div class="flex items-center justify-between">
+                <div>
+                    <div class="flex items-center gap-3">
+                        <h1 class="text-xl font-semibold text-gray-900">GRN002</h1>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                            In Progress
+                        </span>
+                    </div>
+                    <p class="text-sm text-gray-600 mt-1">Hilton Singapore</p>
+                </div>
+                <button class="p-2 text-gray-500">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="px-4 py-4 pb-20">
+        <!-- GRN Information Card -->
+        <div class="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+            <h2 class="text-sm font-medium text-gray-700 mb-3">GRN Information</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <p class="text-xs text-gray-500">Created Date</p>
+                    <p class="text-sm text-gray-900 mt-1">Jan 15, 2024</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500">Received Date</p>
+                    <p class="text-sm text-gray-900 mt-1">Jan 16, 2024</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRN Form Section -->
+        <div class="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+            <h2 class="text-sm font-medium text-gray-700 mb-4">Invoice & Delivery Details</h2>
+            
+            <div class="space-y-4">
+                <!-- Row 1 -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Invoice Number</label>
+                        <input type="text" value="INV-2024-001" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Invoice Date</label>
+                        <input type="date" value="2024-01-15" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                </div>
+
+                <!-- Row 2 -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Invoice Amount</label>
+                        <input type="number" value="2,580.00" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Currency</label>
+                        <select class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                            <option>SGD</option>
+                            <option>USD</option>
+                            <option>EUR</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Row 3 -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Receiver</label>
+                        <input type="text" value="John Doe" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Vendor</label>
+                        <input type="text" value="Fresh Supplies Co." class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                </div>
+
+                <!-- Row 4 -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Terms</label>
+                        <select class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                            <option>Net 30</option>
+                            <option>Net 15</option>
+                            <option>COD</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Freight</label>
+                        <input type="number" value="50.00" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                </div>
+
+                <!-- Row 5 -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Discount</label>
+                        <input type="number" value="0.00" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Tax</label>
+                        <input type="number" value="180.60" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                </div>
+
+                <!-- Row 6 -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Invoice Due Date</label>
+                        <input type="date" value="2024-02-15" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Payment Due Date</label>
+                        <input type="date" value="2024-02-15" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                </div>
+
+                <!-- Row 7 -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">PO Number</label>
+                        <input type="text" value="PO-2024-001" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Delivery Method</label>
+                        <select class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                            <option>Standard Delivery</option>
+                            <option>Express Delivery</option>
+                            <option>Pickup</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Remarks -->
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Remarks</label>
+                    <textarea rows="3" placeholder="Enter any additional notes or remarks..." class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div class="border-b border-gray-200">
+                <nav class="flex">
+                    <button class="tab-active flex-1 py-3 px-4 text-sm font-medium text-center">
+                        Items
+                    </button>
+                    <button class="tab-inactive flex-1 py-3 px-4 text-sm font-medium text-center">
+                        Summary
+                    </button>
+                    <button class="tab-inactive flex-1 py-3 px-4 text-sm font-medium text-center">
+                        Comments
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Items Tab Content -->
+            <div class="p-4">
+                <!-- Kitchen Location -->
+                <div class="mb-6">
+                    <h3 class="text-sm font-medium text-gray-700 mb-3 pb-2 border-b border-gray-100">Kitchen</h3>
+                    
+                    <!-- Item 1 -->
+                    <div class="border border-gray-200 rounded-lg p-4 mb-3">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-900">BEEF001</p>
+                                <p class="text-xs text-gray-600 mt-1">Premium Beef Tenderloin 1kg</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xs text-gray-500">Ordered: 10</p>
+                                <p class="text-xs text-gray-500">Received: 8</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <button class="quantity-btn rounded-l-md">−</button>
+                                <input type="number" value="8" class="quantity-input py-1 border-t border-b border-gray-300 text-sm">
+                                <button class="quantity-btn rounded-r-md">+</button>
+                            </div>
+                            
+                            <div class="flex gap-2">
+                                <button class="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-md">On Hand</button>
+                                <button class="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-md">On Order</button>
+                                <button class="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-md">Price Compare</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Item 2 -->
+                    <div class="border border-gray-200 rounded-lg p-4 mb-3">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-900">VEG002</p>
+                                <p class="text-xs text-gray-600 mt-1">Organic Spinach 500g</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xs text-gray-500">Ordered: 15</p>
+                                <p class="text-xs text-gray-500">Received: 15</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <button class="quantity-btn rounded-l-md">−</button>
+                                <input type="number" value="15" class="quantity-input py-1 border-t border-b border-gray-300 text-sm">
+                                <button class="quantity-btn rounded-r-md">+</button>
+                            </div>
+                            
+                            <div class="flex gap-2">
+                                <button class="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-md">On Hand</button>
+                                <button class="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-md">On Order</button>
+                                <button class="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-md">Price Compare</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bar Location -->
+                <div class="mb-6">
+                    <h3 class="text-sm font-medium text-gray-700 mb-3 pb-2 border-b border-gray-100">Bar</h3>
+                    
+                    <!-- Item 3 -->
+                    <div class="border border-gray-200 rounded-lg p-4 mb-3">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-900">WINE001</p>
+                                <p class="text-xs text-gray-600 mt-1">House Red Wine 750ml</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xs text-gray-500">Ordered: 24</p>
+                                <p class="text-xs text-gray-500">Received: 24</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <button class="quantity-btn rounded-l-md">−</button>
+                                <input type="number" value="24" class="quantity-input py-1 border-t border-b border-gray-300 text-sm">
+                                <button class="quantity-btn rounded-r-md">+</button>
+                            </div>
+                            
+                            <div class="flex gap-2">
+                                <button class="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-md">On Hand</button>
+                                <button class="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-md">On Order</button>
+                                <button class="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-md">Price Compare</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Item 4 -->
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-900">BEER001</p>
+                                <p class="text-xs text-gray-600 mt-1">Local Draft Beer 330ml</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xs text-gray-500">Ordered: 48</p>
+                                <p class="text-xs text-gray-500">Received: 45</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <button class="quantity-btn rounded-l-md">−</button>
+                                <input type="number" value="45" class="quantity-input py-1 border-t border-b border-gray-300 text-sm">
+                                <button class="quantity-btn rounded-r-md">+</button>
+                            </div>
+                            
+                            <div class="flex gap-2">
+                                <button class="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-md">On Hand</button>
+                                <button class="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-md">On Order</button>
+                                <button class="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-md">Price Compare</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Fixed Footer -->
+    <footer class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
+        <button class="w-full bg-primary-800 text-white py-3 px-4 rounded-lg text-sm font-medium hover:bg-primary-900 transition-colors">
+            Save Draft
+        </button>
+    </footer>
+
+    <script>
+        // Simple tab functionality
+        const tabs = document.querySelectorAll('nav button');
+        tabs.forEach((tab, index) => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => {
+                    t.classList.remove('tab-active');
+                    t.classList.add('tab-inactive');
+                });
+                tab.classList.remove('tab-inactive');
+                tab.classList.add('tab-active');
+            });
+        });
+
+        // Quantity button functionality
+        document.querySelectorAll('.quantity-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const isIncrement = e.target.textContent === '+';
+                const input = isIncrement ? 
+                    e.target.previousElementSibling : 
+                    e.target.nextElementSibling;
+                
+                const currentValue = parseInt(input.value) || 0;
+                const newValue = isIncrement ? currentValue + 1 : Math.max(0, currentValue - 1);
+                input.value = newValue;
+            });
+        });
+    </script>
+</body>
+</html>

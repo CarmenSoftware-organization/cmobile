@@ -1,0 +1,26 @@
+Component Name,Type,Description,Dependencies,Status,Related Documents,Implementation Notes
+Authentication Service,Authentication,Multi-tenant authentication and authorization system,User Management + Role System,Complete,Authorization Module,JWT-based with role-based access control
+Multi-tenant Data Isolation,Database,Ensures data separation between business units,Authentication Service,Complete,Technical Architecture,Row-level security implementation
+Mobile App Framework,UI Framework,React Native/Flutter mobile application framework,Platform APIs,Complete,Mobile App Overview,Cross-platform mobile development
+API Gateway,API,Central API gateway for all backend services,Authentication + Business Logic,Complete,Technical Documentation,RESTful API with OpenAPI specification
+PO Management System,Business Logic,Purchase order creation and management,Inventory System + Approval Engine,Complete,Receiving Workflow,Handles PO lifecycle and GRN creation
+GRN Processing Engine,Business Logic,Goods Receipt Note creation and processing,PO Management + Inventory System,Complete,Enhanced GRN Flow,Manages receiving workflow and inventory updates
+Approval Workflow Engine,Workflow,Configurable approval workflows for different document types,Role Management + Notification System,Complete,PR Approval Workflow,State machine-based workflow processing
+Inventory Management System,Business Logic,Real-time inventory tracking and management,Location Management + Stock Take,Complete,Location Count Logic,Tracks on-hand and on-order quantities
+Stock Take Engine,Business Logic,Physical count and spot check processing,Inventory System + Audit Trail,In Development,Physical Count Workflow,Handles count sessions and variance tracking
+Store Requisition System,Business Logic,Inter-department requisition management,Approval Engine + Inventory System,Complete,Store Requisition Workflow,Multi-level approval with signature capture
+Search and Filter Engine,API,Advanced search capabilities across all modules,Database + Indexing Service,Complete,Advanced Search Features,Elasticsearch-based search implementation
+Barcode Scanning Service,Mobile Service,Barcode recognition and item identification,Mobile Camera + Product Database,In Development,Receiving Workflow,Camera integration with ML recognition
+Location Management System,Business Logic,Multi-location inventory and workflow support,Tenant Management + Geographic Data,Complete,Location Count Logic,Hierarchical location structure support
+Notification Service,Communication,Push notifications and in-app messaging,User Preferences + Workflow Events,In Development,Notification Module,Real-time notification delivery system
+Audit Trail System,Compliance,Comprehensive audit logging for all user actions,User Management + Data Events,Complete,Audit Requirements,Immutable audit log with retention policies
+Session Management,Infrastructure,User session handling and state management,Authentication + Security,Complete,Session Architecture,Secure session with timeout and refresh
+File Storage Service,Infrastructure,Document and image storage for the application,Cloud Storage + Security,Complete,File Management,Encrypted file storage with access control
+Offline Sync Engine,Mobile Service,Offline capability and data synchronization,Local Storage + Conflict Resolution,Planned,Offline Architecture,Queue-based sync with conflict detection
+Dashboard Analytics,Analytics,Real-time dashboard metrics and KPI calculation,Data Warehouse + Reporting Engine,In Development,Dashboard Module,Aggregated metrics with drill-down capability
+Mobile Navigation Framework,UI Component,Consistent navigation patterns across mobile app,Route Management + State Persistence,Complete,Navigation Architecture,Bottom tab + stack navigation implementation
+Form Validation Engine,UI Component,Consistent form validation across all modules,Business Rules + Error Handling,Complete,Form Standards,Client and server-side validation framework
+Camera Integration Service,Mobile Service,Camera access for photos and barcode scanning,Device APIs + Permission Management,In Development,Camera Features,Native camera with photo capture and processing
+Digital Signature Service,Mobile Service,Digital signature capture and verification,Legal Compliance + Security,Complete,Signature Capture,Touch-based signature with biometric options
+State Management System,UI Framework,Application state management and data flow,Component Architecture + Data Layer,Complete,State Architecture,Redux/Context-based state management
+Error Handling Framework,Infrastructure,Centralized error handling and user feedback,Logging Service + User Interface,Complete,Error Management,Graceful error handling with user-friendly messages

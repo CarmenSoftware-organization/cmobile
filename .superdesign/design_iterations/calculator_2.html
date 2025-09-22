@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculator v2 - Modern Geometric Design</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    spacing: {
+                        '4': '1rem',
+                        '8': '2rem',
+                        '12': '3rem',
+                        '16': '4rem',
+                        '20': '5rem',
+                        '24': '6rem'
+                    },
+                    animation: {
+                        'press': 'press 0.1s ease-in-out',
+                        'ripple': 'ripple 0.6s linear'
+                    },
+                    keyframes: {
+                        press: {
+                            '0%': { transform: 'scale(1)' },
+                            '50%': { transform: 'scale(0.96)' },
+                            '100%': { transform: 'scale(1)' }
+                        },
+                        ripple: {
+                            '0%': { transform: 'scale(0)', opacity: '1' },
+                            '100%': { transform: 'scale(4)', opacity: '0' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .calculator-shadow {
+            box-shadow: 
+                0 20px 25px -5px rgba(0, 0, 0, 0.1),
+                0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .btn-shadow {
+            box-shadow: 
+                0 4px 6px -1px rgba(0, 0, 0, 0.1),
+                0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        .btn-pressed {
+            box-shadow: 
+                inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+        }
+        
+        .display-glow {
+            box-shadow: 
+                inset 0 2px 4px 0 rgba(0, 0, 0, 0.06),
+                0 0 20px rgba(99, 102, 241, 0.1);
+        }
+        
+        .ripple-effect {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .ripple-effect::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .ripple-effect:active::before {
+            width: 300px;
+            height: 300px;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-zinc-100 flex items-center justify-center p-4">
+    
+    <!-- Calculator Container -->
+    <div class="calculator-shadow bg-white rounded-3xl p-8 w-full max-w-sm">
+        
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-2xl font-light text-gray-800 tracking-wide">Calculator</h1>
+            <div class="w-16 h-1 bg-gradient-to-r from-indigo-500 to-purple-600 mx-auto mt-2 rounded-full"></div>
+        </div>
+        
+        <!-- Display -->
+        <div class="display-glow bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6 mb-8 border border-gray-200">
+            <div class="text-right">
+                <div id="expression" class="text-sm text-gray-500 h-6 overflow-hidden"></div>
+                <div id="display" class="text-4xl font-light text-gray-900 mt-2 min-h-[3rem] flex items-center justify-end">0</div>
+            </div>
+        </div>
+        
+        <!-- Button Grid -->
+        <div class="grid grid-cols-4 gap-3">
+            
+            <!-- Row 1 -->
+            <button class="calc-btn function-btn col-span-2 bg-gray-100 hover:bg-gray-200 text-gray-700" onclick="clearAll()">
+                <span class="text-lg font-medium">Clear</span>
+            </button>
+            <button class="calc-btn function-btn bg-gray-100 hover:bg-gray-200 text-gray-700" onclick="deleteLast()">
+                <span class="text-xl">⌫</span>
+            </button>
+            <button class="calc-btn operator-btn bg-indigo-500 hover:bg-indigo-600 text-white" onclick="appendOperator('/')">
+                <span class="text-xl">÷</span>
+            </button>
+            
+            <!-- Row 2 -->
+            <button class="calc-btn number-btn bg-white hover:bg-gray-50 text-gray-900" onclick="appendNumber('7')">
+                <span class="text-xl font-light">7</span>
+            </button>
+            <button class="calc-btn number-btn bg-white hover:bg-gray-50 text-gray-900" onclick="appendNumber('8')">
+                <span class="text-xl font-light">8</span>
+            </button>
+            <button class="calc-btn number-btn bg-white hover:bg-gray-50 text-gray-900" onclick="appendNumber('9')">
+                <span class="text-xl font-light">9</span>
+            </button>
+            <button class="calc-btn operator-btn bg-indigo-500 hover:bg-indigo-600 text-white" onclick="appendOperator('*')">
+                <span class="text-xl">×</span>
+            </button>
+            
+            <!-- Row 3 -->
+            <button class="calc-btn number-btn bg-white hover:bg-gray-50 text-gray-900" onclick="appendNumber('4')">
+                <span class="text-xl font-light">4</span>
+            </button>
+            <button class="calc-btn number-btn bg-white hover:bg-gray-50 text-gray-900" onclick="appendNumber('5')">
+                <span class="text-xl font-light">5</span>
+            </button>
+            <button class="calc-btn number-btn bg-white hover:bg-gray-50 text-gray-900" onclick="appendNumber('6')">
+                <span class="text-xl font-light">6</span>
+            </button>
+            <button class="calc-btn operator-btn bg-indigo-500 hover:bg-indigo-600 text-white" onclick="appendOperator('-')">
+                <span class="text-xl">−</span>
+            </button>
+            
+            <!-- Row 4 -->
+            <button class="calc-btn number-btn bg-white hover:bg-gray-50 text-gray-900" onclick="appendNumber('1')">
+                <span class="text-xl font-light">1</span>
+            </button>
+            <button class="calc-btn number-btn bg-white hover:bg-gray-50 text-gray-900" onclick="appendNumber('2')">
+                <span class="text-xl font-light">2</span>
+            </button>
+            <button class="calc-btn number-btn bg-white hover:bg-gray-50 text-gray-900" onclick="appendNumber('3')">
+                <span class="text-xl font-light">3</span>
+            </button>
+            <button class="calc-btn operator-btn bg-indigo-500 hover:bg-indigo-600 text-white" onclick="appendOperator('+')">
+                <span class="text-xl">+</span>
+            </button>
+            
+            <!-- Row 5 -->
+            <button class="calc-btn number-btn col-span-2 bg-white hover:bg-gray-50 text-gray-900" onclick="appendNumber('0')">
+                <span class="text-xl font-light">0</span>
+            </button>
+            <button class="calc-btn number-btn bg-white hover:bg-gray-50 text-gray-900" onclick="appendDecimal()">
+                <span class="text-xl font-light">.</span>
+            </button>
+            <button class="calc-btn equals-btn bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white" onclick="calculate()">
+                <span class="text-xl font-medium">=</span>
+            </button>
+            
+        </div>
+        
+        <!-- Footer -->
+        <div class="text-center mt-8">
+            <p class="text-xs text-gray-400 tracking-wide">Geometric Design v2</p>
+        </div>
+        
+    </div>
+
+    <script>
+        let display = document.getElementById('display');
+        let expression = document.getElementById('expression');
+        let currentExpression = '';
+        let shouldResetDisplay = false;
+
+        function updateDisplay(value) {
+            if (shouldResetDisplay) {
+                display.textContent = value;
+                shouldResetDisplay = false;
+            } else {
+                display.textContent = value;
+            }
+        }
+
+        function updateExpression(expr) {
+            expression.textContent = expr;
+        }
+
+        function appendNumber(number) {
+            if (shouldResetDisplay) {
+                currentExpression = '';
+                shouldResetDisplay = false;
+            }
+            
+            if (display.textContent === '0' && number !== '0') {
+                updateDisplay(number);
+            } else if (display.textContent !== '0') {
+                updateDisplay(display.textContent + number);
+            }
+        }
+
+        function appendDecimal() {
+            if (shouldResetDisplay) {
+                updateDisplay('0.');
+                shouldResetDisplay = false;
+                return;
+            }
+            
+            if (!display.textContent.includes('.')) {
+                updateDisplay(display.textContent + '.');
+            }
+        }
+
+        function appendOperator(operator) {
+            if (currentExpression && !shouldResetDisplay) {
+                calculate();
+            }
+            
+            currentExpression = display.textContent + ' ' + operator + ' ';
+            updateExpression(currentExpression);
+            shouldResetDisplay = true;
+        }
+
+        function calculate() {
+            if (!currentExpression) return;
+            
+            try {
+                let fullExpression = currentExpression + display.textContent;
+                updateExpression(fullExpression + ' =');
+                
+                // Replace display operators with JavaScript operators
+                let jsExpression = fullExpression
+                    .replace(/×/g, '*')
+                    .replace(/÷/g, '/')
+                    .replace(/−/g, '-');
+                
+                let result = eval(jsExpression);
+                
+                // Format result
+                if (result % 1 === 0) {
+                    result = result.toString();
+                } else {
+                    result = parseFloat(result.toFixed(10)).toString();
+                }
+                
+                updateDisplay(result);
+                currentExpression = '';
+                shouldResetDisplay = true;
+                
+            } catch (error) {
+                updateDisplay('Error');
+                currentExpression = '';
+                shouldResetDisplay = true;
+            }
+        }
+
+        function clearAll() {
+            updateDisplay('0');
+            updateExpression('');
+            currentExpression = '';
+            shouldResetDisplay = false;
+        }
+
+        function deleteLast() {
+            if (display.textContent.length > 1) {
+                updateDisplay(display.textContent.slice(0, -1));
+            } else {
+                updateDisplay('0');
+            }
+        }
+
+        // Add click animation to all buttons
+        document.querySelectorAll('.calc-btn').forEach(button => {
+            button.addEventListener('mousedown', function() {
+                this.classList.add('animate-press');
+            });
+            
+            button.addEventListener('mouseup', function() {
+                setTimeout(() => {
+                    this.classList.remove('animate-press');
+                }, 100);
+            });
+            
+            button.addEventListener('mouseleave', function() {
+                this.classList.remove('animate-press');
+            });
+        });
+
+        // Keyboard support
+        document.addEventListener('keydown', function(event) {
+            const key = event.key;
+            
+            if (key >= '0' && key <= '9') {
+                appendNumber(key);
+            } else if (key === '.') {
+                appendDecimal();
+            } else if (key === '+') {
+                appendOperator('+');
+            } else if (key === '-') {
+                appendOperator('-');
+            } else if (key === '*') {
+                appendOperator('*');
+            } else if (key === '/') {
+                event.preventDefault();
+                appendOperator('/');
+            } else if (key === 'Enter' || key === '=') {
+                calculate();
+            } else if (key === 'Escape' || key === 'c' || key === 'C') {
+                clearAll();
+            } else if (key === 'Backspace') {
+                deleteLast();
+            }
+        });
+    </script>
+
+    <style>
+        .calc-btn {
+            @apply h-16 rounded-xl border border-gray-200 btn-shadow 
+                   transition-all duration-150 ease-in-out 
+                   flex items-center justify-center
+                   active:scale-95 active:btn-pressed
+                   min-h-[48px] min-w-[48px];
+        }
+        
+        .number-btn {
+            @apply hover:border-gray-300;
+        }
+        
+        .function-btn {
+            @apply border-gray-300;
+        }
+        
+        .operator-btn {
+            @apply border-indigo-400 shadow-lg;
+        }
+        
+        .equals-btn {
+            @apply border-purple-400 shadow-lg;
+        }
+        
+        .calc-btn:active {
+            transform: scale(0.95);
+        }
+        
+        @media (max-width: 640px) {
+            .calc-btn {
+                @apply h-14 text-lg;
+            }
+            
+            #display {
+                @apply text-3xl;
+            }
+        }
+        
+        @media (min-width: 768px) {
+            .calc-btn {
+                @apply h-18;
+            }
+        }
+    </style>
+
+</body>
+</html>

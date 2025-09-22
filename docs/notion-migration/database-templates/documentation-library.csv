@@ -1,0 +1,22 @@
+Title,Document Type,Module,Status,Priority,Last Updated,Related Features,Tags,Description
+Carmen PRD Comprehensive,PRD,General,Active,Critical,2025-01-15,All Core Features,"PRD,Requirements,Core",Master product requirements document
+Mobile App Overview,Overview,General,Active,Critical,2025-01-15,Product Vision,"Overview,Strategy,Vision",High-level product overview and user journeys
+UX/UI Guide,UI/UX,General,Active,High,2024-12-01,Design System,"Design,UI,UX,Guidelines",Complete design system and guidelines
+Enhanced GRN Flow,Workflow,Receiving,Active,High,2024-11-15,GRN Management,"Workflow,Receiving,GRN",Goods Receipt Note workflow documentation
+PR Approval Workflow,Workflow,PR Approval,Active,High,2024-11-15,PR Approval Interface,"Workflow,Approval,PR",Purchase request approval process
+Receiving Workflow,Workflow,Receiving,Active,High,2024-11-15,PO Management,"Workflow,Receiving,PO",Purchase order receiving process
+Physical Count Workflow,Workflow,Stock Take,Active,Medium,2024-11-01,Physical Count,"Workflow,Inventory,Count",Physical inventory counting process
+Spot Check Workflow,Workflow,Stock Take,Active,Medium,2024-11-01,Spot Check,"Workflow,Audit,Spot Check",Spot check audit process
+Store Requisition Workflow,Workflow,Store Requisition,Active,High,2024-11-15,SR Approval,"Workflow,Requisition,Approval",Store requisition approval workflow
+Authorization Module,Technical,Authentication,Active,Critical,2024-10-01,Multi-tenant Auth,"Technical,Security,Auth",Authorization and security implementation
+Mobile FRD v2,Technical,General,Active,High,2024-12-01,Functional Requirements,"Technical,Requirements,FRD",Functional requirements document
+Location Count Logic,Technical,Stock Take,Active,Medium,2024-10-15,Location Management,"Technical,Logic,Location",Location-based counting logic
+UI Prototype,UI/UX,General,Active,Medium,2024-11-01,UI Components,"Design,Prototype,UI",UI component prototypes and layouts
+GRN Detail Layout,UI/UX,Receiving,Active,High,2024-11-15,GRN Detail Screen,"Design,Layout,GRN",GRN detail screen layout specification
+Content Specification,UI/UX,General,Active,Medium,2024-10-15,Content Strategy,"Design,Content,Specification",Content guidelines and specifications
+Welcome Splash Screen,UI/UX,General,Active,Low,2024-10-01,Welcome Screen,"Design,Splash,Welcome",Welcome screen design specification
+Project Checklist,Management,General,Active,High,2025-01-15,Project Tracking,"Management,Checklist,QA",Project update and QA checklist
+Carmen PRD Workflow Status,Management,General,Active,High,2025-01-15,Project Status,"Management,Status,Workflow",Current project workflow status
+Mobile PRD v2,PRD,General,Active,Medium,2024-12-01,Version 2 Features,"PRD,Requirements,v2",Second version of PRD with updates
+Original PRD,PRD,General,Archived,Low,2024-09-01,Original Requirements,"PRD,Requirements,Archive",Original product requirements document
+SR Content,Technical,Store Requisition,Active,Medium,2024-11-01,SR Content,"Technical,Content,SR",Store requisition content specifications

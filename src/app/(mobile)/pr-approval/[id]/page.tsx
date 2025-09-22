@@ -41,7 +41,7 @@ type Item = {
   inventoryUnit: string;
   unitPrice: number;
   totalPrice: number;
-  onHandData?: Array<{ name: string; qty_available: number; min_qty: number; max_qty: number; last_counted: string; }>;
+  onHandData?: Array<{ name: string; qty_available: number; min_qty: number; max_qty: number; }>;
   onOrderData?: Array<{ po_number: string; vendor: string; ordered_qty: number; status: string; due_date: string; }>;
   requestLocations?: Array<{ location: string; quantity: number; priority: string; notes?: string; }>;
   vendorPrices: Array<{vendor: string; price: number; currency?: string; date?: string}>;
@@ -91,7 +91,7 @@ export default function PrApprovalDetailPage() {
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
-  const [originalItemsState, setOriginalItemsState] = useState<Item[]>([]); // Store original state for cancel functionality
+
   const [showTestPanel, setShowTestPanel] = useState(false);
 
   const [sendbackStep, setSendbackStep] = useState<number>(0);
@@ -119,8 +119,8 @@ export default function PrApprovalDetailPage() {
       unitPrice: 24.99,
       totalPrice: 249.90,
       onHandData: [
-        { name: 'Main Store', qty_available: 20, min_qty: 10, max_qty: 100, last_counted: '2025-05-01' },
-        { name: 'Bar', qty_available: 5, min_qty: 2, max_qty: 20, last_counted: '2025-04-28' },
+        { name: 'Main Store', qty_available: 20, min_qty: 10, max_qty: 100 },
+        { name: 'Bar', qty_available: 5, min_qty: 2, max_qty: 20 },
       ],
       onOrderData: [
         { po_number: 'PO-2025-001', vendor: 'Vendor A', ordered_qty: 20, status: 'In Progress', due_date: '2025-06-15' },
@@ -170,8 +170,8 @@ export default function PrApprovalDetailPage() {
       unitPrice: 18.50,
       totalPrice: 92.50,
       onHandData: [
-        { name: 'Main Store', qty_available: 20, min_qty: 10, max_qty: 100, last_counted: '2025-05-01' },
-        { name: 'Bar', qty_available: 5, min_qty: 2, max_qty: 20, last_counted: '2025-04-28' },
+        { name: 'Main Store', qty_available: 20, min_qty: 10, max_qty: 100 },
+        { name: 'Bar', qty_available: 5, min_qty: 2, max_qty: 20 },
       ],
       onOrderData: [
         { po_number: 'PO-2025-003', vendor: 'Vendor C', ordered_qty: 10, status: 'In Progress', due_date: '2025-06-10' },
@@ -219,8 +219,8 @@ export default function PrApprovalDetailPage() {
       unitPrice: 12.75,
       totalPrice: 102.00,
       onHandData: [
-        { name: 'Main Store', qty_available: 20, min_qty: 10, max_qty: 100, last_counted: '2025-05-01' },
-        { name: 'Bar', qty_available: 5, min_qty: 2, max_qty: 20, last_counted: '2025-04-28' },
+        { name: 'Main Store', qty_available: 20, min_qty: 10, max_qty: 100 },
+        { name: 'Bar', qty_available: 5, min_qty: 2, max_qty: 20 },
       ],
       onOrderData: [
         { po_number: 'PO-2025-005', vendor: 'Vendor E', ordered_qty: 8, status: 'In Progress', due_date: '2025-06-05' },
@@ -262,8 +262,8 @@ export default function PrApprovalDetailPage() {
       unitPrice: 45.00,
       totalPrice: 90.00,
       onHandData: [
-        { name: 'Main Store', qty_available: 20, min_qty: 10, max_qty: 100, last_counted: '2025-05-01' },
-        { name: 'Bar', qty_available: 5, min_qty: 2, max_qty: 20, last_counted: '2025-04-28' },
+        { name: 'Main Store', qty_available: 20, min_qty: 10, max_qty: 100 },
+        { name: 'Bar', qty_available: 5, min_qty: 2, max_qty: 20 },
       ],
       onOrderData: [
         { po_number: 'PO-2025-007', vendor: 'Vendor G', ordered_qty: 2, status: 'In Progress', due_date: '2025-05-25' },
@@ -290,12 +290,7 @@ export default function PrApprovalDetailPage() {
     }
   ]);
 
-  // Initialize original state when component mounts
-  useEffect(() => {
-    if (originalItemsState.length === 0) {
-      setOriginalItemsState(JSON.parse(JSON.stringify(itemsState)));
-    }
-  }, [itemsState, originalItemsState.length]);
+
 
   // Mock PR header data - matches PR-2001 from the list
   const mockPR = {
@@ -356,8 +351,8 @@ export default function PrApprovalDetailPage() {
 
   // Select all logic with smart handling for pending vs all items
   const pendingItems = itemsState.filter(item => item.status === 'Pending');
-  const allSelected = selectedItems.length === itemsState.length;
-  const allPendingSelected = pendingItems.length > 0 && pendingItems.every(item => selectedItems.includes(item.id));
+  const allSelected = selectedItems.length === itemsState.length && itemsState.length > 0;
+  const allPendingSelected = selectedItems.length === pendingItems.length && pendingItems.length > 0 && pendingItems.every(pItem => selectedItems.includes(pItem.id));
   
   const toggleSelectItem = (id: number) => {
     setSelectedItems(prev =>
@@ -365,13 +360,23 @@ export default function PrApprovalDetailPage() {
     );
   };
 
+  const toggleSelectAll = () => {
+    if (selectedItems.length > 0) {
+      // If items are currently selected, deselect all immediately without showing dialog
+      setSelectedItems([]);
+    } else {
+      // If no items are selected, show dialog to choose selection mode
+      setShowBulkSelectDialog(true);
+    }
+  };
+
   // Workflow logic functions
   const determineWorkflowAction = () => {
     const itemStatuses = itemsState.map(item => item.status);
     const approvedCount = itemStatuses.filter(status => status === 'Approved').length;
+    const pendingCount = itemStatuses.filter(status => status === 'Pending').length;
     const rejectedCount = itemStatuses.filter(status => status === 'Rejected').length;
     const reviewCount = itemStatuses.filter(status => status === 'Review').length;
-    const pendingCount = itemStatuses.filter(status => status === 'Pending').length;
     const totalItems = itemStatuses.length;
 
     // All items rejected - reject the entire PR
@@ -472,7 +477,7 @@ export default function PrApprovalDetailPage() {
       case 'APPROVE_PR': return `Approve PR (${approvedCount} items)`;
       case 'PARTIAL_APPROVAL': return `Partial Approval (${approvedCount} items)`;
       case 'NOT_READY': return 'Review Required';
-      default: return 'Submit';
+      default: return 'Confirm';
     }
   };
 
@@ -493,28 +498,9 @@ export default function PrApprovalDetailPage() {
     return workflowAction !== 'NOT_READY';
   };
 
-  // Check if any items have been edited
-  const hasEditedItems = () => {
-    return itemsState.some(item => item.isEdited === true);
-  };
 
-  // Save changes - clear the edited flags
-  const handleSaveChanges = () => {
-    setItemsState(prevItems => 
-      prevItems.map(item => ({
-        ...item,
-        isEdited: false
-      }))
-    );
-    // Update original state to current state
-    setOriginalItemsState(JSON.parse(JSON.stringify(itemsState)));
-  };
 
-  // Cancel changes - revert to original state
-  const handleCancelChanges = () => {
-    setItemsState(JSON.parse(JSON.stringify(originalItemsState)));
-    setSelectedItem(null); // Close any open dialogs
-  };
+
 
   // Function to update approved quantity
   const updateApprovedQuantity = (itemId: number, quantity: string) => {
@@ -554,7 +540,9 @@ export default function PrApprovalDetailPage() {
   }, [selectedItems, itemsState.length, allSelected]);
 
   const [showBulkSelectDialog, setShowBulkSelectDialog] = useState(false);
-  const [bulkSelectOption, setBulkSelectOption] = useState<'all' | 'pending' | 'none'>('all');
+  const [bulkSelectOption, setBulkSelectOption] = useState<'all' | 'pending'>('all');
+
+
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 relative mx-auto">
@@ -723,99 +711,84 @@ export default function PrApprovalDetailPage() {
       <main className="flex-1 pb-20 px-4">
         <div>
           <div className="flex items-center mb-4 gap-2">
-            <input
-              ref={selectAllCheckboxRef}
-              type="checkbox"
-              checked={allSelected || (pendingItems.length > 0 && allPendingSelected)}
-              onChange={() => setShowBulkSelectDialog(true)}
-              className="mr-2 w-4 h-4 accent-blue-600 cursor-pointer"
-              aria-label="Bulk select options"
-            />
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-              Select
-              {pendingItems.length > 0 ? (
-                <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                  ({pendingItems.length} pending)
-                </span>
+            <div className="flex items-center gap-2">
+              <input
+                ref={selectAllCheckboxRef}
+                type="checkbox"
+                checked={allSelected || (pendingItems.length > 0 && allPendingSelected)}
+                onChange={toggleSelectAll}
+                className="w-4 h-4 accent-blue-600 cursor-pointer"
+                aria-label="Bulk select options"
+              />
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                Select
+              </h2>
+            </div>
+          
+            {/* Selection Status Summary */}
+            <div className="text-xs text-gray-700 dark:text-gray-300">
+              {selectedItems.length === itemsState.length && itemsState.length > 0 ? (
+                <span>All items selected</span>
+              ) : selectedItems.length === pendingItems.length && pendingItems.length > 0 && selectedItems.every(id => pendingItems.map(i => i.id).includes(id)) ? (
+                <span>Only pending items selected</span>
+              ) : selectedItems.length === 0 ? (
+                <span>No items selected</span>
               ) : (
-                <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                  ({itemsState.length} processed)
-                </span>
+                <span>{selectedItems.length} item{selectedItems.length > 1 ? 's' : ''} selected</span>
               )}
-            </h2>
+            </div>
           </div>
-          {/* Selection Status Summary */}
-          <div className="mb-2 text-xs text-gray-700 dark:text-gray-300">
-            {selectedItems.length === itemsState.length && itemsState.length > 0 ? (
-              <span>All items selected</span>
-            ) : selectedItems.length === pendingItems.length && pendingItems.length > 0 && selectedItems.every(id => pendingItems.map(i => i.id).includes(id)) ? (
-              <span>Only pending items selected</span>
-            ) : selectedItems.length === 0 ? (
-              <span>No items selected</span>
-            ) : (
-              <span>{selectedItems.length} item{selectedItems.length > 1 ? 's' : ''} selected</span>
-            )}
-          </div>
-
           {/* Bulk Select Modal */}
           <Dialog open={showBulkSelectDialog} onOpenChange={setShowBulkSelectDialog}>
             <DialogContent className="w-[350px]">
               <DialogHeader>
                 <DialogTitle>Bulk Select Items</DialogTitle>
               </DialogHeader>
-              <div className="space-y-3 mt-2">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    id="bulk-all"
-                    name="bulk-select"
-                    checked={bulkSelectOption === 'all'}
-                    onChange={() => setBulkSelectOption('all')}
-                  />
-                  <label htmlFor="bulk-all" className="text-sm cursor-pointer">
-                    Select <b>All Items</b> <span className="text-xs text-gray-500">({itemsState.length})</span>
-                  </label>
+              <div className="p-4">
+                <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">Choose an option to apply to all items.</p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id="bulk-all"
+                      name="bulk-select"
+                      checked={bulkSelectOption === 'all'}
+                      onChange={() => setBulkSelectOption('all')}
+                      className="w-4 h-4 accent-blue-600"
+                    />
+                    <label htmlFor="bulk-all" className="text-sm cursor-pointer text-gray-900 dark:text-gray-100">
+                      Select <b>All Items</b> <span className="text-xs text-gray-500 dark:text-gray-400">({itemsState.length})</span>
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id="bulk-pending"
+                      name="bulk-select"
+                      checked={bulkSelectOption === 'pending'}
+                      onChange={() => setBulkSelectOption('pending')}
+                      className="w-4 h-4 accent-blue-600"
+                    />
+                    <label htmlFor="bulk-pending" className="text-sm cursor-pointer text-gray-900 dark:text-gray-100">
+                      Select <b>Only Pending Items</b> <span className="text-xs text-gray-500 dark:text-gray-400">({pendingItems.length})</span>
+                    </label>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    id="bulk-pending"
-                    name="bulk-select"
-                    checked={bulkSelectOption === 'pending'}
-                    onChange={() => setBulkSelectOption('pending')}
-                  />
-                  <label htmlFor="bulk-pending" className="text-sm cursor-pointer">
-                    Select <b>Only Pending Items</b> <span className="text-xs text-gray-500">({pendingItems.length})</span>
-                  </label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    id="bulk-none"
-                    name="bulk-select"
-                    checked={bulkSelectOption === 'none'}
-                    onChange={() => setBulkSelectOption('none')}
-                  />
-                  <label htmlFor="bulk-none" className="text-sm cursor-pointer">
-                    Deselect All
-                  </label>
-                </div>
-                <div className="mt-4 flex gap-2 justify-end">
-                  <Button variant="ghost" onClick={() => setShowBulkSelectDialog(false)}>Cancel</Button>
-                  <Button
-                    onClick={() => {
-                      if (bulkSelectOption === 'all') {
-                        setSelectedItems(itemsState.map(item => item.id));
-                      } else if (bulkSelectOption === 'pending') {
-                        setSelectedItems(pendingItems.map(item => item.id));
-                      } else {
-                        setSelectedItems([]);
-                      }
-                      setShowBulkSelectDialog(false);
-                    }}
-                  >
-                    Apply Selection
-                  </Button>
+                <div className="mt-6 flex gap-3 justify-end">
+                    <Button variant="ghost" onClick={() => setShowBulkSelectDialog(false)}>Cancel</Button>
+                    <Button
+                        onClick={() => {
+                            if (bulkSelectOption === 'all') {
+                                setSelectedItems(itemsState.map(item => item.id));
+                            } else if (bulkSelectOption === 'pending') {
+                                setSelectedItems(pendingItems.map(item => item.id));
+                            }
+                            setShowBulkSelectDialog(false);
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                        Apply Selection
+                    </Button>
                 </div>
               </div>
             </DialogContent>
@@ -836,7 +809,7 @@ export default function PrApprovalDetailPage() {
                   setItemsState(prev => prev.map(item => selectedItems.includes(item.id) ? { ...item, status: 'Rejected', comments: comment.trim(), isEdited: false } : item));
                 }
               }}>Reject</Button>
-              <Button size="sm" className="bg-white dark:bg-gray-700 text-yellow-600 dark:text-yellow-400 border border-yellow-600 dark:border-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/30" onClick={() => setItemsState(prev => prev.map(item => selectedItems.includes(item.id) ? { ...item, status: 'Pending', isEdited: false } : item))}>Reset</Button>
+
             </div>
           )}
 
@@ -852,11 +825,6 @@ export default function PrApprovalDetailPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {item.isEdited && (
-                      <Badge className="text-xs px-2 py-0.5 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-700">
-                        Edited
-                      </Badge>
-                    )}
                     <div className="flex items-center gap-1">
                       <Badge className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs px-2 py-0.5">{item.status}</Badge>
                       {item.comments && item.status !== 'Approved' && item.status !== 'Pending' && (
@@ -1013,11 +981,6 @@ export default function PrApprovalDetailPage() {
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{selectedItem.name}</h3>
                   <p className="text-sm font-mono text-gray-500 dark:text-gray-400">{selectedItem.sku}</p>
                   <div className="flex items-center gap-2 mt-1">
-                    {selectedItem.isEdited && (
-                      <Badge className="text-xs px-2 py-0.5 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-700">
-                        Edited
-                      </Badge>
-                    )}
                     <Badge className={`text-xs ${statusColor[selectedItem.status] || ''}`}>
                       {selectedItem.status}
                     </Badge>
@@ -1153,33 +1116,14 @@ export default function PrApprovalDetailPage() {
           </div>
         </div>
 
-        {/* Conditional Button Display */}
-        {hasEditedItems() ? (
-          /* Save/Cancel Buttons when items are edited */
-          <div className="flex gap-3">
-            <Button 
-              className="flex-1 h-12 bg-gray-500 hover:bg-gray-600 text-white font-medium !rounded-button"
-              onClick={handleCancelChanges}
-            >
-              Cancel Changes
-            </Button>
-            <Button 
-              className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium !rounded-button"
-              onClick={handleSaveChanges}
-            >
-              Save Changes
-            </Button>
-          </div>
-        ) : (
-          /* Submit Button when no items are edited */
-          <Button 
-            className={`w-full h-12 text-white font-medium !rounded-button ${getSubmitButtonColor()}`}
-            onClick={() => setShowSubmitDialog(true)}
-            disabled={!canSubmit() || isSubmitting}
-          >
-            {isSubmitting ? 'Submitting...' : getSubmitButtonText()}
-          </Button>
-        )}
+        {/* Submit Button */}
+        <Button 
+          className={`w-full h-12 text-white font-medium !rounded-button ${getSubmitButtonColor()}`}
+          onClick={() => setShowSubmitDialog(true)}
+          disabled={!canSubmit() || isSubmitting}
+        >
+          {isSubmitting ? 'Submitting...' : getSubmitButtonText()}
+        </Button>
       </div>
 
       {/* Bottom Navigation */}
@@ -1223,7 +1167,7 @@ export default function PrApprovalDetailPage() {
                     {onHandItem?.sku || 'SKU'}
                   </span>
                   <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-900 text-xs font-medium">
-                    Base Unit: {onHandItem?.unit}
+                    Inventory Unit: {onHandItem?.unit}
                   </span>
                 </div>
               </div>
@@ -1245,12 +1189,12 @@ export default function PrApprovalDetailPage() {
                           <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{loc.name}</span>
                         </div>
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-lg font-extrabold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-                          {loc.qty_available} Available
+                          {loc.qty_available}
                         </span>
                       </div>
                       
                       {/* Second Level: Min and Max */}
-                      <div className="grid grid-cols-3 gap-3 text-sm">
+                      <div className="grid grid-cols-2 gap-3 text-sm">
                         <div>
                           <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block">Min Qty</span>
                           <span className="font-medium text-gray-900 dark:text-gray-100">{loc.min_qty}</span>
@@ -1259,10 +1203,6 @@ export default function PrApprovalDetailPage() {
                           <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block">Max Qty</span>
                           <span className="font-medium text-gray-900 dark:text-gray-100">{loc.max_qty}</span>
                         </div>
-                        <div>
-                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block">Last Counted</span>
-                          <span className="font-medium text-gray-900 dark:text-gray-100">{loc.last_counted}</span>
-                        </div>
                       </div>
                     </div>
                   ))}
@@ -1270,7 +1210,7 @@ export default function PrApprovalDetailPage() {
                   {(onHandItem.onHandData?.length ?? 0) > 0 && (
                     <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg border-2 border-blue-200 dark:border-blue-700 p-4">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold text-gray-900 dark:text-gray-100">Total Available</span>
+                        <span className="text-sm font-bold text-gray-900 dark:text-gray-100">Total</span>
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-blue-100 text-blue-900 dark:bg-blue-800 dark:text-blue-100">
                           {onHandItem.onHandData?.reduce((sum, loc) => sum + (loc.qty_available || 0), 0) || 0}
                         </span>
@@ -1305,9 +1245,6 @@ export default function PrApprovalDetailPage() {
                 <div className="flex flex-row items-center gap-2 mt-1">
                   <span className="px-2 py-0.5 rounded bg-orange-100 text-orange-900 text-xs font-medium">
                     {onOrderItem?.sku || 'SKU'}
-                  </span>
-                  <span className="px-2 py-0.5 rounded bg-orange-100 text-orange-900 text-xs font-medium">
-                    Order Unit: {onOrderItem?.unit}
                   </span>
                 </div>
               </div>
@@ -1418,17 +1355,19 @@ export default function PrApprovalDetailPage() {
                 </h3>
                 <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 border border-indigo-200 dark:border-indigo-800">
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
+                    <div className="col-span-2">
                       <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400 block mb-1">Last Vendor</span>
                       <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{priceCompareItem.vendor || 'N/A'}</span>
                     </div>
                     <div>
-                      <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400 block mb-1">Last Price</span>
-                      <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">${priceCompareItem.lastPurchasePrice?.toFixed(2) || 'N/A'}</span>
-                    </div>
-                    <div className="col-span-2 mt-2">
                       <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400 block mb-1">Last Purchase Date</span>
                       <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{priceCompareItem.lastPurchaseDate || 'N/A'}</span>
+                    </div>
+                    <div className="col-span-2 mt-2">
+                      <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400 block mb-1">Last Price</span>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        ${priceCompareItem.lastPurchasePrice?.toFixed(2) || 'N/A'} / {priceCompareItem.unit}
+                      </span>
                     </div>
                   </div>
                 </div>

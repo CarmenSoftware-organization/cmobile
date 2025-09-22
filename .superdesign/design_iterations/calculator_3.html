@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculator - Design 3</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'mono': ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', 'monospace'],
+                    },
+                    animation: {
+                        'ripple': 'ripple 0.3s ease-out',
+                        'pulse-soft': 'pulse-soft 2s infinite',
+                        'fade-in': 'fade-in 0.2s ease-out',
+                    },
+                    keyframes: {
+                        ripple: {
+                            '0%': { transform: 'scale(0)', opacity: '1' },
+                            '100%': { transform: 'scale(1)', opacity: '0' }
+                        },
+                        'pulse-soft': {
+                            '0%, 100%': { opacity: '1' },
+                            '50%': { opacity: '0.7' }
+                        },
+                        'fade-in': {
+                            '0%': { opacity: '0', transform: 'translateY(4px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .button-ripple {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .button-ripple::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.1);
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s;
+        }
+        
+        .button-ripple:active::before {
+            width: 100px;
+            height: 100px;
+        }
+        
+        .display-glow {
+            box-shadow: 
+                0 0 20px rgba(0, 0, 0, 0.05),
+                inset 0 1px 0 rgba(255, 255, 255, 0.6),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+        }
+        
+        .button-shadow {
+            box-shadow: 
+                0 1px 3px rgba(0, 0, 0, 0.12),
+                0 1px 2px rgba(0, 0, 0, 0.24),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+        
+        .button-shadow:hover {
+            box-shadow: 
+                0 3px 6px rgba(0, 0, 0, 0.16),
+                0 3px 6px rgba(0, 0, 0, 0.23),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4);
+        }
+        
+        .button-shadow:active {
+            box-shadow: 
+                0 1px 2px rgba(0, 0, 0, 0.16),
+                inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex items-center justify-center p-4">
+    <!-- Background Elements -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute -top-40 -right-40 w-80 h-80 bg-blue-100 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse-soft"></div>
+        <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-100 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse-soft" style="animation-delay: 1s;"></div>
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-green-100 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse-soft" style="animation-delay: 2s;"></div>
+    </div>
+
+    <!-- Calculator Container -->
+    <div class="relative z-10">
+        <!-- Header -->
+        <div class="text-center mb-8 animate-fade-in">
+            <h1 class="text-2xl font-light text-gray-800 mb-2">Calculator</h1>
+            <div class="w-16 h-0.5 bg-gradient-to-r from-transparent via-gray-400 to-transparent mx-auto"></div>
+        </div>
+
+        <!-- Calculator -->
+        <div class="glass-effect rounded-3xl p-8 shadow-2xl max-w-sm w-full animate-fade-in" style="animation-delay: 0.1s;">
+            <!-- Display -->
+            <div class="mb-8">
+                <!-- Secondary Display -->
+                <div class="h-6 mb-2">
+                    <div id="history" class="text-right text-sm text-gray-500 font-mono truncate opacity-0 transition-opacity duration-200"></div>
+                </div>
+                
+                <!-- Main Display -->
+                <div class="display-glow bg-gray-50 rounded-2xl p-6 mb-4">
+                    <div id="display" class="text-right text-4xl font-light text-gray-900 font-mono min-h-[2.5rem] flex items-center justify-end">0</div>
+                </div>
+                
+                <!-- Status Indicators -->
+                <div class="flex justify-between items-center px-2">
+                    <div class="flex space-x-2">
+                        <div class="w-2 h-2 bg-green-400 rounded-full opacity-60"></div>
+                        <div class="w-2 h-2 bg-blue-400 rounded-full opacity-30"></div>
+                        <div class="w-2 h-2 bg-purple-400 rounded-full opacity-30"></div>
+                    </div>
+                    <div class="text-xs text-gray-400 font-mono">READY</div>
+                </div>
+            </div>
+
+            <!-- Button Grid -->
+            <div class="grid grid-cols-4 gap-3">
+                <!-- Row 1 -->
+                <button onclick="clearAll()" class="button-ripple button-shadow bg-red-50 hover:bg-red-100 active:bg-red-200 text-red-600 font-medium h-14 rounded-xl transition-all duration-150 text-lg">C</button>
+                <button onclick="clearEntry()" class="button-ripple button-shadow bg-orange-50 hover:bg-orange-100 active:bg-orange-200 text-orange-600 font-medium h-14 rounded-xl transition-all duration-150 text-lg">CE</button>
+                <button onclick="backspace()" class="button-ripple button-shadow bg-yellow-50 hover:bg-yellow-100 active:bg-yellow-200 text-yellow-600 font-medium h-14 rounded-xl transition-all duration-150 text-lg">⌫</button>
+                <button onclick="inputOperator('÷')" class="button-ripple button-shadow bg-blue-50 hover:bg-blue-100 active:bg-blue-200 text-blue-600 font-medium h-14 rounded-xl transition-all duration-150 text-xl">÷</button>
+
+                <!-- Row 2 -->
+                <button onclick="inputNumber('7')" class="button-ripple button-shadow bg-white hover:bg-gray-50 active:bg-gray-100 text-gray-800 font-medium h-14 rounded-xl transition-all duration-150 text-xl">7</button>
+                <button onclick="inputNumber('8')" class="button-ripple button-shadow bg-white hover:bg-gray-50 active:bg-gray-100 text-gray-800 font-medium h-14 rounded-xl transition-all duration-150 text-xl">8</button>
+                <button onclick="inputNumber('9')" class="button-ripple button-shadow bg-white hover:bg-gray-50 active:bg-gray-100 text-gray-800 font-medium h-14 rounded-xl transition-all duration-150 text-xl">9</button>
+                <button onclick="inputOperator('×')" class="button-ripple button-shadow bg-blue-50 hover:bg-blue-100 active:bg-blue-200 text-blue-600 font-medium h-14 rounded-xl transition-all duration-150 text-xl">×</button>
+
+                <!-- Row 3 -->
+                <button onclick="inputNumber('4')" class="button-ripple button-shadow bg-white hover:bg-gray-50 active:bg-gray-100 text-gray-800 font-medium h-14 rounded-xl transition-all duration-150 text-xl">4</button>
+                <button onclick="inputNumber('5')" class="button-ripple button-shadow bg-white hover:bg-gray-50 active:bg-gray-100 text-gray-800 font-medium h-14 rounded-xl transition-all duration-150 text-xl">5</button>
+                <button onclick="inputNumber('6')" class="button-ripple button-shadow bg-white hover:bg-gray-50 active:bg-gray-100 text-gray-800 font-medium h-14 rounded-xl transition-all duration-150 text-xl">6</button>
+                <button onclick="inputOperator('-')" class="button-ripple button-shadow bg-blue-50 hover:bg-blue-100 active:bg-blue-200 text-blue-600 font-medium h-14 rounded-xl transition-all duration-150 text-xl">−</button>
+
+                <!-- Row 4 -->
+                <button onclick="inputNumber('1')" class="button-ripple button-shadow bg-white hover:bg-gray-50 active:bg-gray-100 text-gray-800 font-medium h-14 rounded-xl transition-all duration-150 text-xl">1</button>
+                <button onclick="inputNumber('2')" class="button-ripple button-shadow bg-white hover:bg-gray-50 active:bg-gray-100 text-gray-800 font-medium h-14 rounded-xl transition-all duration-150 text-xl">2</button>
+                <button onclick="inputNumber('3')" class="button-ripple button-shadow bg-white hover:bg-gray-50 active:bg-gray-100 text-gray-800 font-medium h-14 rounded-xl transition-all duration-150 text-xl">3</button>
+                <button onclick="inputOperator('+')" class="button-ripple button-shadow bg-blue-50 hover:bg-blue-100 active:bg-blue-200 text-blue-600 font-medium h-14 rounded-xl transition-all duration-150 text-xl">+</button>
+
+                <!-- Row 5 -->
+                <button onclick="inputNumber('0')" class="button-ripple button-shadow bg-white hover:bg-gray-50 active:bg-gray-100 text-gray-800 font-medium h-14 rounded-xl transition-all duration-150 text-xl col-span-2">0</button>
+                <button onclick="inputDecimal()" class="button-ripple button-shadow bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-800 font-medium h-14 rounded-xl transition-all duration-150 text-xl">.</button>
+                <button onclick="calculate()" class="button-ripple button-shadow bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 active:from-green-700 active:to-emerald-700 text-white font-medium h-14 rounded-xl transition-all duration-150 text-xl shadow-lg">=</button>
+            </div>
+
+            <!-- Footer -->
+            <div class="mt-6 pt-4 border-t border-gray-200">
+                <div class="flex justify-center space-x-4 text-xs text-gray-400">
+                    <span>Design 3</span>
+                    <span>•</span>
+                    <span>Premium Calculator</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let display = document.getElementById('display');
+        let history = document.getElementById('history');
+        let currentInput = '0';
+        let operator = null;
+        let previousInput = null;
+        let waitingForOperand = false;
+
+        function updateDisplay() {
+            display.textContent = currentInput;
+            
+            // Adjust font size based on length
+            if (currentInput.length > 10) {
+                display.classList.add('text-2xl');
+                display.classList.remove('text-4xl');
+            } else {
+                display.classList.add('text-4xl');
+                display.classList.remove('text-2xl');
+            }
+        }
+
+        function updateHistory(text) {
+            history.textContent = text;
+            history.style.opacity = text ? '1' : '0';
+        }
+
+        function inputNumber(num) {
+            if (waitingForOperand) {
+                currentInput = num;
+                waitingForOperand = false;
+            } else {
+                currentInput = currentInput === '0' ? num : currentInput + num;
+            }
+            updateDisplay();
+        }
+
+        function inputDecimal() {
+            if (waitingForOperand) {
+                currentInput = '0.';
+                waitingForOperand = false;
+            } else if (currentInput.indexOf('.') === -1) {
+                currentInput += '.';
+            }
+            updateDisplay();
+        }
+
+        function inputOperator(nextOperator) {
+            const inputValue = parseFloat(currentInput);
+
+            if (previousInput === null) {
+                previousInput = inputValue;
+            } else if (operator) {
+                const currentValue = previousInput || 0;
+                const newValue = performCalculation(currentValue, inputValue, operator);
+
+                currentInput = String(newValue);
+                previousInput = newValue;
+                updateDisplay();
+            }
+
+            waitingForOperand = true;
+            operator = nextOperator;
+            
+            updateHistory(`${previousInput} ${operator}`);
+        }
+
+        function calculate() {
+            const inputValue = parseFloat(currentInput);
+
+            if (previousInput !== null && operator) {
+                const currentValue = previousInput || 0;
+                const newValue = performCalculation(currentValue, inputValue, operator);
+
+                updateHistory(`${previousInput} ${operator} ${inputValue} =`);
+                
+                currentInput = String(newValue);
+                previousInput = null;
+                operator = null;
+                waitingForOperand = true;
+                updateDisplay();
+            }
+        }
+
+        function performCalculation(firstOperand, secondOperand, operator) {
+            switch (operator) {
+                case '+':
+                    return firstOperand + secondOperand;
+                case '-':
+                    return firstOperand - secondOperand;
+                case '×':
+                    return firstOperand * secondOperand;
+                case '÷':
+                    return secondOperand !== 0 ? firstOperand / secondOperand : 0;
+                default:
+                    return secondOperand;
+            }
+        }
+
+        function clearAll() {
+            currentInput = '0';
+            previousInput = null;
+            operator = null;
+            waitingForOperand = false;
+            updateDisplay();
+            updateHistory('');
+        }
+
+        function clearEntry() {
+            currentInput = '0';
+            updateDisplay();
+        }
+
+        function backspace() {
+            if (currentInput.length > 1) {
+                currentInput = currentInput.slice(0, -1);
+            } else {
+                currentInput = '0';
+            }
+            updateDisplay();
+        }
+
+        // Keyboard support
+        document.addEventListener('keydown', function(event) {
+            const key = event.key;
+            
+            if (key >= '0' && key <= '9') {
+                inputNumber(key);
+            } else if (key === '.') {
+                inputDecimal();
+            } else if (key === '+') {
+                inputOperator('+');
+            } else if (key === '-') {
+                inputOperator('-');
+            } else if (key === '*') {
+                inputOperator('×');
+            } else if (key === '/') {
+                event.preventDefault();
+                inputOperator('÷');
+            } else if (key === 'Enter' || key === '=') {
+                event.preventDefault();
+                calculate();
+            } else if (key === 'Escape') {
+                clearAll();
+            } else if (key === 'Backspace') {
+                backspace();
+            }
+        });
+
+        // Initialize
+        updateDisplay();
+    </script>
+</body>
+</html>

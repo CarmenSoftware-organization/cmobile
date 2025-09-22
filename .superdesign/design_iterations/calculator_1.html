@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    colors: {
+                        'gray-950': '#0a0a0a',
+                        'gray-925': '#171717',
+                    },
+                    spacing: {
+                        '18': '4.5rem',
+                        '22': '5.5rem',
+                    },
+                    animation: {
+                        'scale-in': 'scale-in 0.1s ease-out',
+                        'fade-in': 'fade-in 0.3s ease-out',
+                    },
+                    keyframes: {
+                        'scale-in': {
+                            '0%': { transform: 'scale(0.95)' },
+                            '100%': { transform: 'scale(1)' },
+                        },
+                        'fade-in': {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+        .calculator-shadow {
+            box-shadow: 
+                0 25px 50px -12px rgba(0, 0, 0, 0.25),
+                0 10px 25px -8px rgba(0, 0, 0, 0.1),
+                0 0 0 1px rgba(255, 255, 255, 0.05);
+        }
+        .button-shadow {
+            box-shadow: 
+                0 1px 3px rgba(0, 0, 0, 0.12),
+                0 1px 2px rgba(0, 0, 0, 0.24),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+        .button-shadow-pressed {
+            box-shadow: 
+                inset 0 2px 4px rgba(0, 0, 0, 0.2),
+                inset 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        .display-gradient {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+        .calculator-gradient {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%);
+        }
+        .number-button {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid #e2e8f0;
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .number-button:hover {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-color: #cbd5e1;
+            transform: translateY(-1px);
+        }
+        .number-button:active {
+            transform: translateY(0);
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+        }
+        .operator-button {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border: 1px solid #475569;
+            color: white;
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .operator-button:hover {
+            background: linear-gradient(135deg, #334155 0%, #475569 100%);
+            border-color: #64748b;
+            transform: translateY(-1px);
+        }
+        .operator-button:active {
+            transform: translateY(0);
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        }
+        .equals-button {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            border: 1px solid #334155;
+            color: white;
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .equals-button:hover {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border-color: #475569;
+            transform: translateY(-1px);
+        }
+        .equals-button:active {
+            transform: translateY(0);
+            background: linear-gradient(135deg, #020617 0%, #0f172a 100%);
+        }
+        .clear-button {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            border: 1px solid #dc2626;
+            color: white;
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .clear-button:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            border-color: #b91c1c;
+            transform: translateY(-1px);
+        }
+        .clear-button:active {
+            transform: translateY(0);
+            background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+        }
+        .display-text {
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex items-center justify-center p-4 font-sans">
+    
+    <!-- Calculator Container -->
+    <div class="calculator-gradient calculator-shadow rounded-3xl p-8 w-full max-w-sm animate-fade-in">
+        
+        <!-- Display Screen -->
+        <div class="display-gradient rounded-2xl p-6 mb-6 border border-slate-200">
+            <div class="text-right">
+                <div id="previous-operation" class="text-sm text-slate-500 h-5 mb-1 font-medium"></div>
+                <div id="current-display" class="text-3xl font-semibold text-slate-900 display-text break-all">0</div>
+            </div>
+        </div>
+
+        <!-- Button Grid -->
+        <div class="grid grid-cols-4 gap-3">
+            
+            <!-- Row 1: Clear, +/-, %, ÷ -->
+            <button class="clear-button rounded-xl h-14 text-lg font-semibold button-shadow" onclick="clearCalculator()">C</button>
+            <button class="operator-button rounded-xl h-14 text-lg font-semibold button-shadow" onclick="toggleSign()">±</button>
+            <button class="operator-button rounded-xl h-14 text-lg font-semibold button-shadow" onclick="percentage()">%</button>
+            <button class="operator-button rounded-xl h-14 text-lg font-semibold button-shadow" onclick="setOperation('÷')">÷</button>
+            
+            <!-- Row 2: 7, 8, 9, × -->
+            <button class="number-button rounded-xl h-14 text-lg font-semibold button-shadow" onclick="appendNumber('7')">7</button>
+            <button class="number-button rounded-xl h-14 text-lg font-semibold button-shadow" onclick="appendNumber('8')">8</button>
+            <button class="number-button rounded-xl h-14 text-lg font-semibold button-shadow" onclick="appendNumber('9')">9</button>
+            <button class="operator-button rounded-xl h-14 text-lg font-semibold button-shadow" onclick="setOperation('×')">×</button>
+            
+            <!-- Row 3: 4, 5, 6, - -->
+            <button class="number-button rounded-xl h-14 text-lg font-semibold button-shadow" onclick="appendNumber('4')">4</button>
+            <button class="number-button rounded-xl h-14 text-lg font-semibold button-shadow" onclick="appendNumber('5')">5</button>
+            <button class="number-button rounded-xl h-14 text-lg font-semibold button-shadow" onclick="appendNumber('6')">6</button>
+            <button class="operator-button rounded-xl h-14 text-lg font-semibold button-shadow" onclick="setOperation('-')">−</button>
+            
+            <!-- Row 4: 1, 2, 3, + -->
+            <button class="number-button rounded-xl h-14 text-lg font-semibold button-shadow" onclick="appendNumber('1')">1</button>
+            <button class="number-button rounded-xl h-14 text-lg font-semibold button-shadow" onclick="appendNumber('2')">2</button>
+            <button class="number-button rounded-xl h-14 text-lg font-semibold button-shadow" onclick="appendNumber('3')">3</button>
+            <button class="operator-button rounded-xl h-14 text-lg font-semibold button-shadow" onclick="setOperation('+')">+</button>
+            
+            <!-- Row 5: 0 (spans 2 columns), ., = -->
+            <button class="number-button rounded-xl h-14 text-lg font-semibold button-shadow col-span-2" onclick="appendNumber('0')">0</button>
+            <button class="number-button rounded-xl h-14 text-lg font-semibold button-shadow" onclick="appendNumber('.')">•</button>
+            <button class="equals-button rounded-xl h-14 text-lg font-semibold button-shadow" onclick="calculate()">=</button>
+            
+        </div>
+        
+        <!-- Footer -->
+        <div class="text-center mt-6 text-xs text-slate-400 font-medium">
+            Modern Calculator
+        </div>
+        
+    </div>
+
+    <script>
+        let currentDisplay = '0';
+        let previousNumber = null;
+        let operation = null;
+        let waitingForNewNumber = false;
+
+        const currentDisplayElement = document.getElementById('current-display');
+        const previousOperationElement = document.getElementById('previous-operation');
+
+        function updateDisplay() {
+            currentDisplayElement.textContent = currentDisplay;
+            if (previousNumber !== null && operation) {
+                previousOperationElement.textContent = `${previousNumber} ${operation}`;
+            } else {
+                previousOperationElement.textContent = '';
+            }
+        }
+
+        function appendNumber(number) {
+            if (number === '.' && currentDisplay.includes('.')) return;
+            
+            if (waitingForNewNumber) {
+                currentDisplay = number === '.' ? '0.' : number;
+                waitingForNewNumber = false;
+            } else {
+                currentDisplay = currentDisplay === '0' && number !== '.' ? number : currentDisplay + number;
+            }
+            
+            updateDisplay();
+        }
+
+        function setOperation(op) {
+            if (previousNumber !== null && !waitingForNewNumber) {
+                calculate();
+            }
+            
+            previousNumber = parseFloat(currentDisplay);
+            operation = op;
+            waitingForNewNumber = true;
+            updateDisplay();
+        }
+
+        function calculate() {
+            if (previousNumber === null || operation === null || waitingForNewNumber) return;
+            
+            const current = parseFloat(currentDisplay);
+            let result;
+            
+            switch (operation) {
+                case '+':
+                    result = previousNumber + current;
+                    break;
+                case '−':
+                    result = previousNumber - current;
+                    break;
+                case '×':
+                    result = previousNumber * current;
+                    break;
+                case '÷':
+                    result = current !== 0 ? previousNumber / current : 'Error';
+                    break;
+                default:
+                    return;
+            }
+            
+            currentDisplay = result === 'Error' ? 'Error' : result.toString();
+            if (currentDisplay.length > 12) {
+                currentDisplay = parseFloat(currentDisplay).toExponential(6);
+            }
+            
+            previousNumber = null;
+            operation = null;
+            waitingForNewNumber = true;
+            updateDisplay();
+        }
+
+        function clearCalculator() {
+            currentDisplay = '0';
+            previousNumber = null;
+            operation = null;
+            waitingForNewNumber = false;
+            updateDisplay();
+        }
+
+        function toggleSign() {
+            if (currentDisplay !== '0' && currentDisplay !== 'Error') {
+                currentDisplay = currentDisplay.startsWith('-') 
+                    ? currentDisplay.slice(1) 
+                    : '-' + currentDisplay;
+                updateDisplay();
+            }
+        }
+
+        function percentage() {
+            if (currentDisplay !== 'Error') {
+                currentDisplay = (parseFloat(currentDisplay) / 100).toString();
+                updateDisplay();
+            }
+        }
+
+        // Keyboard support
+        document.addEventListener('keydown', function(event) {
+            event.preventDefault();
+            
+            if (event.key >= '0' && event.key <= '9') {
+                appendNumber(event.key);
+            } else if (event.key === '.') {
+                appendNumber('.');
+            } else if (event.key === '+') {
+                setOperation('+');
+            } else if (event.key === '-') {
+                setOperation('−');
+            } else if (event.key === '*') {
+                setOperation('×');
+            } else if (event.key === '/') {
+                setOperation('÷');
+            } else if (event.key === 'Enter' || event.key === '=') {
+                calculate();
+            } else if (event.key === 'Escape' || event.key === 'c' || event.key === 'C') {
+                clearCalculator();
+            } else if (event.key === '%') {
+                percentage();
+            } else if (event.key === 'Backspace') {
+                if (currentDisplay.length > 1 && currentDisplay !== 'Error') {
+                    currentDisplay = currentDisplay.slice(0, -1);
+                } else {
+                    currentDisplay = '0';
+                }
+                updateDisplay();
+            }
+        });
+
+        // Touch feedback for mobile
+        document.querySelectorAll('button').forEach(button => {
+            button.addEventListener('touchstart', function() {
+                this.style.transform = 'translateY(0)';
+            });
+            
+            button.addEventListener('touchend', function() {
+                setTimeout(() => {
+                    this.style.transform = '';
+                }, 100);
+            });
+        });
+    </script>
+
+</body>
+</html>

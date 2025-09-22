@@ -1,135 +1,185 @@
 # Carmen Supply Chain Mobile App - User Journey Overview
 
 ## Document Information
-- **Version**: 2.1
-- **Date**: January 2025 (Updated with Store Requisition UI/UX enhancements and Receiving/GRN calendar integration)
+- **Version**: 3.0
+- **Date**: June 24, 2025 (Updated to reflect current implementation)
 - **Product**: Carmen Software Supply Chain Mobile App
 - **Target Industry**: Hotels and Hospitality
-- **Document Type**: User Journey Overview
+- **Document Type**: Current Implementation Overview
 
 ## What is This App?
 
-A **mobile-first supply chain management tool** designed specifically for **hotels and hospitality businesses**. It streamlines inventory, purchasing, and approval workflows that traditionally required desktop systems or manual processes.
+A **mobile-first supply chain management tool** designed specifically for **hotels and hospitality businesses**. This implementation provides core functionality for inventory, purchasing, and approval workflows with a modern, responsive interface. The app currently operates with comprehensive mock data and demonstrates the complete user experience for hotel supply chain operations.
 
 ## Key Users & Their Journeys
 
 ### 1. **Cost Controller** (Michelle's Story)
 **Goal**: Ensure inventory accuracy through spot checks and audits
 
-**Journey**:
-- Opens app → Dashboard shows all assigned hotel properties
-- Selects "Spot Check" → Chooses location (restaurant)
-- Picks check method: Random (20 items) or Manual selection
-- App generates locked item list for compliance
-- Goes through each item: counts, photos, notes
-- Uses [On Hand] and [On Order] buttons to verify expected quantities
-- Submits completed check → Creates audit trail
+**Current Implementation**:
+- Opens app → Dashboard shows module cards with counts
+- Selects "Stock Take" → Chooses "Spot Check" option
+- Selects location from available locations list
+- Picks check method: Random (20 items), High Value, or Manual selection
+- Reviews generated item list and proceeds to counting session
+- Goes through each item: enters counts and notes
+- Reviews counts in review session → Submits completed check
+- Success confirmation with session summary
 
-**Pain Points Solved**: No more guessing, lost paperwork, or incomplete audits
+**Current Features**: Location-based spot checks, multiple selection methods, session-based workflow
 
 ### 2. **Receiving Clerk**
 **Goal**: Efficiently receive deliveries and update inventory
 
-**Journey**:
-- Dashboard → "Purchase Orders" → Sees today's deliveries
-- Selects PO(s) → Creates Goods Receipt Note (GRN)
-- For each item: enters received quantity, handles unit conversions
-- Captures photos of damaged goods, gets delivery signature
-- Submits GRN → Inventory automatically updated
+**Current Implementation**:
+- Dashboard → "Receiving" → Sees PO list with search and filtering
+- Can scan PO via QR/barcode or select from list
+- Selects business unit and locations for receiving
+- Creates GRN with Items, Summary, and Comments tabs
+- For each item: enters received quantity with unit selection
+- Adds comments and attachments as needed
+- Reviews summary and submits GRN
 
-**Pain Points Solved**: No more manual calculations, missing receipts, or data entry errors
+**Current Features**: PO scanning, location-based receiving, tabbed GRN interface, comprehensive filtering
 
 ### 3. **PR Approver** (Department Head/Manager)
 **Goal**: Review and approve purchase requests efficiently
 
-**Journey**:
-- Gets notification of pending PR → Taps to open directly
-- Reviews request details, sees requester and business justification
-- For each item: checks [On Hand] (current inventory) and [On Order] (incoming stock)
-- Approves, rejects, or modifies quantities
-- Adds comments if needed → Submits decision
+**Current Implementation**:
+- Dashboard → "Approval" → Sees PR list with filtering by status, department, BU
+- Selects individual PR to review details
+- Reviews request information including requester, department, and business context
+- Reviews each item with workflow status indicators
+- Makes approval decisions with clear action buttons
+- Submits decisions with workflow progression logic
 
-**Pain Points Solved**: No more email chains, lost approvals, or uninformed decisions
+**Current Features**: Filtered PR lists, individual PR review, workflow status management, multi-stage approval process
 
 ### 4. **Store Staff** (Store Requisition)
 **Goal**: Request items from other departments/locations
 
-**Journey**:
-- Creates Store Requisition → Selects requesting department and source location
-- Adds items via search or barcode scan
-- Submits for approval → Department Head approves → Store Manager approves
-- Store staff fulfill request → Delivery confirmed with signature
+**Current Implementation**:
+- Dashboard → "Store Req." → Sees SR list with filtering by status, department
+- Can create new store requisition with item selection
+- Reviews individual SRs with detailed item information
+- Manages SR workflow states (Draft, In-progress, Approved, etc.)
+- Views SR history and status progression
 
-## Core Business Logic
+**Current Features**: SR list management, create new requisitions, workflow status tracking, filtering capabilities
 
-### Multi-Tenant Authorization
-- Each user has access to specific **Business Units** (hotel properties)
-- BU context is **always visible** but **never selectable** during workflows
-- Example: "Grand Hotel Singapore" vs "Business Hotel Jakarta"
+## Current Implementation Features
 
-### State-Based Workflows
-**GRN (Goods Receipt) States**:
-- **Draft** → Can edit, some items may have zero quantities
-- **Received** → All items have quantities > 0
-- **Committed** → Finalized, cannot edit
-- **Void** → Cancelled, returns items to PO
+### Multi-Tenant Business Units
+- Users are assigned to specific **Business Units** (hotel properties)
+- Business unit selection during authentication workflow
+- BU context displayed throughout the application
+- Examples: "Grand Hotel Singapore", "Business Hotel Jakarta", "Boutique Hotel Bangkok"
 
-### Smart Features
+### Workflow Management
+**PR (Purchase Request) States**:
+- **Draft** → Initial creation state
+- **In-progress** → Submitted for approval
+- **Approved** → Approved by manager
+- **Rejected** → Rejected with comments
 
-**Name-First Display**: Product names always shown before SKU codes (mobile-friendly)
+**SR (Store Requisition) States**:
+- **Draft** → Initial creation state
+- **In-progress** → Submitted for approval workflow
+- **Approved** → Approved by manager
+- **Fulfilled** → Items delivered
 
-**Unit Conversion**: Can receive in "PO units" (cases) or "inventory units" (bottles) with automatic conversion
+### Current Features
 
-**Tax/Discount**: Always read-only on mobile - no overrides allowed (desktop only)
+**Mobile-First Design**: Touch-optimized interface with responsive layouts
 
-**Audit Everything**: Every action logged with user, timestamp, location, and before/after values
+**Session-Based Workflows**: Physical count and spot check sessions with progress tracking
 
-## Navigation Flow
+**Comprehensive Filtering**: Search and filter capabilities across all modules
+
+**Theme Support**: Dark/light mode toggle with consistent styling
+
+**Mock Data Integration**: Realistic business scenarios with comprehensive test data
+
+## Current Navigation Structure
 
 ```
 Dashboard (Home)
-├── Store Requisition
-│   ├── Create SR → Submit → Approvals → Issue
-├── Receiving (Purchase Orders)
-│   ├── Select PO(s) → Create GRN → Item Entry → Submit
-├── PR Approval  
-│   ├── PR List → PR Detail → [On Hand]/[On Order] → Approve/Reject
+├── Receiving
+│   ├── PO List → Scan PO OR Select PO → Business Unit → Locations → GRN Detail
+│   ├── GRN List → View/Edit GRNs
+│   ├── Draft GRNs → Manage Draft Documents
+│   └── Advanced Search → Filter and Search POs
+├── PR Approval (Approval)
+│   ├── PR List → Filter by Status/Department/BU
+│   └── PR Detail → Review and Approve Individual Requests
+├── Store Requisition (Store Req.)
+│   ├── SR List → Filter by Status/Department
+│   ├── SR Detail → View/Edit Individual Requisitions
+│   └── Create SR → New Requisition Interface
 ├── Stock Take
-│   ├── Physical Count OR Spot Check → Location → Count Items → Submit
-└── Profile & Settings
+│   ├── Physical Count → Location Selection → Count Sessions
+│   └── Spot Check → Location → Method → Count Sessions
+├── Notifications
+│   └── Notification Center → Manage All Notifications
+└── Profile
+    ├── User Profile → View Personal Information
+    └── Edit Profile → Update Personal Details
 ```
 
-## Key Mobile Optimizations
+## Current Mobile Features
 
-### **Enforce Proper Workflows**
-- Can't access GRNs directly - must go through PO selection
-- Spot check item lists are "locked" once started (compliance)
-- No shortcuts that bypass audit requirements
+### **Responsive Design**
+- Mobile-first interface with touch-optimized controls
+- Bottom tab navigation for easy thumb access
+- Card-based layouts for better mobile readability
+- Responsive layouts that adapt to different screen sizes
 
-### **Context-Aware Information**
-- **[On Hand]** and **[On Order]** buttons only appear in PR Approval
-- Show current inventory and pending orders when making approval decisions
-- Not available in receiving workflows (prevents confusion)
+### **User Experience**
+- Clear visual hierarchy with consistent styling
+- Loading states and progress indicators
+- Form validation with real-time feedback
+- Theme toggle (dark/light mode) with system preference detection
 
-### **Offline Support**
-- Can create/edit Store Requisitions offline
-- Actions queue up and sync when connection restored
-- Clear indicators for offline-created content
+### **Session Management**
+- Persistent navigation state across app sessions
+- Form state preservation during navigation
+- Business unit context maintained throughout workflows
+- Client-side session handling with local storage
 
-## Business Impact Goals
+### **Current Limitations**
+- Mock data integration (no real backend connectivity)
+- Basic authentication (no advanced security features)
+- No offline capabilities (requires internet connection)
+- Limited audit trail functionality
 
-- **90% increase** in supply chain transaction accuracy
-- **75% reduction** in non-compliant inventory events  
-- **80% user adoption** of mobile workflows within 6 months
-- **30% decrease** in monthly inventory reconciliation time
+## Current Implementation Value
 
-## Why This Matters
+### **Demonstration Capabilities**
+- **Complete User Experience**: Full workflow demonstrations for all major supply chain processes
+- **Mobile-First Design**: Showcases modern, responsive interface design principles
+- **Realistic Data Scenarios**: Comprehensive mock data reflecting real hotel operations
+- **Workflow Validation**: Proves concept viability for hotel supply chain management
 
-Traditional hotel supply chain management involves:
-- Manual paperwork that gets lost
-- Desktop-only systems that aren't accessible on the floor
-- Approval bottlenecks via email
-- Incomplete audit trails
-- Inventory discrepancies discovered too late
+### **Ready for Enhancement**
+- **Backend Integration**: Foundation ready for API integration and real data
+- **Advanced Features**: Architecture supports offline capabilities, advanced security, and audit trails
+- **Scalability**: Component-based design allows for easy feature expansion
+- **User Training**: Current implementation serves as effective training and demonstration tool
 
-This mobile app brings **real-time, compliant, auditable** supply chain management directly to where the work happens - in the restaurant, kitchen, storeroom, and receiving dock.
+## Why This Implementation Matters
+
+### **Current State Validation**
+This implementation demonstrates how modern mobile technology can transform hotel supply chain management by:
+- **Proving Mobile-First Viability**: Shows that complex supply chain workflows can be effectively managed on mobile devices
+- **Validating User Experience**: Demonstrates intuitive, touch-optimized interfaces for hotel staff
+- **Showcasing Integration Potential**: Provides foundation for future backend integration and advanced features
+- **Enabling Stakeholder Buy-In**: Offers tangible demonstration of concept value and user experience
+
+### **Foundation for Growth**
+The current implementation provides:
+- **Solid Architecture**: React/TypeScript foundation ready for production enhancement
+- **Proven Workflows**: Validated user journeys and business logic
+- **Design System**: Consistent, scalable UI components and patterns
+- **Development Roadmap**: Clear path from demonstration to production deployment
+
+This mobile app implementation proves that **modern, mobile-first supply chain management** is not only possible but practical for hotel operations, setting the stage for future development and deployment.

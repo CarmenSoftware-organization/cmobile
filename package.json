@@ -16,7 +16,7 @@
     "@radix-ui/react-scroll-area": "^1.2.8",
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-tabs": "^1.1.12",
-    "@stagewise-plugins/react": "^0.4.8",
+    "@stagewise-plugins/react": "^0.4.9",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
@@ -30,7 +30,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@stagewise/toolbar-next": "^0.4.7",
+    "@stagewise/toolbar-next": "^0.4.9",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^24.0.1",
     "@types/react": "^19",

@@ -87,7 +87,7 @@ export const GRNForm: React.FC<GRNFormProps> = ({ mode, initialData = {}, onSubm
         {/* Ref# and Date */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-1">Ref#</label>
+            <label className="block text-sm font-medium text-muted-foreground mb-1">GRN#</label>
             <input
               type="text"
               value={form.refNumber}
